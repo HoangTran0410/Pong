@@ -1,9 +1,11 @@
-import { CONFIG } from "./config.js";
-import BallTrail from "./ball-trail.js";
+import { CONFIG } from "../config/game.js";
+import BallTrail from "./BallTrail.js";
+import eventBus from "../core/EventBus.js";
 
-// Ball Class
+// Ball Entity - Self-contained ball object with physics and rendering
 class Ball {
-  constructor(x, y, game = null) {
+  constructor(x, y, id = null) {
+    this.id = id || `ball_${Date.now()}_${Math.random()}`;
     this.x = x;
     this.y = y;
     this.radius = CONFIG.BALL_SIZE;
@@ -11,7 +13,6 @@ class Ball {
     this.dx = CONFIG.BALL_SPEED;
     this.dy = 0;
     this.lastHitBy = null;
-    this.game = game; // Store game reference
 
     // Powerup effects
     this.effects = new Map();
@@ -22,6 +23,9 @@ class Ball {
 
     // Retro trail helper
     this.trail = new BallTrail();
+
+    // Portal cooldown to prevent infinite loops
+    this.portalCooldown = 0;
   }
 
   // Get current speed magnitude
@@ -45,9 +49,7 @@ class Ball {
     const minHorizontalSpeed = currentSpeed * minHorizontalRatio;
 
     if (horizontalSpeed < minHorizontalSpeed) {
-      // Increase horizontal velocity while maintaining total speed
       const horizontalDeficit = minHorizontalSpeed - horizontalSpeed;
-      const verticalSpeed = Math.abs(this.dy);
 
       if (this.dx >= 0) {
         this.dx += horizontalDeficit;
@@ -81,7 +83,7 @@ class Ball {
     this.setSpeed(newSpeed);
   }
 
-  // Update ball position
+  // Update ball position and physics
   update() {
     // Ensure minimum speed to prevent ball from getting stuck
     const currentSpeed = this.getSpeed();
@@ -99,6 +101,11 @@ class Ball {
     if (CONFIG.BALL_TRAIL && CONFIG.BALL_TRAIL.ENABLED) {
       this.trail.push(this.x, this.y, this.radius, CONFIG.BALL_TRAIL.LENGTH);
     }
+
+    // Update portal cooldown
+    if (this.portalCooldown > 0) {
+      this.portalCooldown -= 16; // Assuming ~60fps (16ms per frame)
+    }
   }
 
   // Check collision with walls
@@ -114,25 +121,28 @@ class Ball {
         Math.min(CONFIG.CANVAS_HEIGHT - this.radius, this.y)
       );
 
-      // Create wall collision particles
-      if (this.game && this.game.createParticleEffect) {
-        this.game.createParticleEffect(this.x, this.y, "wall_hit");
-      }
+      // Emit wall collision event
+      eventBus.emit("ball:wallCollision", {
+        ball: this,
+        x: this.x,
+        y: this.y,
+        type: "wall_hit",
+      });
     }
 
     // Left and right walls (ball goes off screen)
     if (this.x - this.radius <= 0) {
-      this.game.addScore("right", 1);
-      // Create scoring particles
-      if (this.game && this.game.createParticleEffect) {
-        this.game.createParticleEffect(this.x, this.y, "score");
-      }
+      eventBus.emit("ball:score", {
+        ball: this,
+        scorer: "right",
+        points: 1,
+      });
     } else if (this.x + this.radius >= CONFIG.CANVAS_WIDTH) {
-      this.game.addScore("left", 1);
-      // Create scoring particles
-      if (this.game && this.game.createParticleEffect) {
-        this.game.createParticleEffect(this.x, this.y, "score");
-      }
+      eventBus.emit("ball:score", {
+        ball: this,
+        scorer: "left",
+        points: 1,
+      });
     }
   }
 
@@ -173,17 +183,78 @@ class Ball {
   // Add powerup effect
   addEffect(type, effect) {
     this.effects.set(type, { type, effect });
-
-    // Apply effects immediately
     this.applyEffects();
   }
 
   // Remove powerup effect
   removeEffect(type) {
     this.effects.delete(type);
-
-    // Reapply effects after removal
     this.applyEffects();
+  }
+
+  // Handle paddle collision
+  handlePaddleCollision(paddle) {
+    // Calculate hit point relative to paddle center
+    const hitPoint = (this.y - paddle.y) / paddle.currentHeight;
+
+    // Add randomness to hit angle (makes AI less predictable)
+    const randomAngleOffset = (Math.random() - 0.5) * 0.3; // ±0.15 radians
+    const baseAngle = ((hitPoint - 0.5) * Math.PI) / 3; // -30 to +30 degrees
+    const finalAngle = baseAngle + randomAngleOffset;
+
+    // Clamp angle to reasonable bounds and ensure variety
+    let clampedAngle = Math.max(
+      -Math.PI / 3,
+      Math.min(Math.PI / 3, finalAngle)
+    );
+
+    // Prevent the ball from getting stuck in vertical patterns
+    if (Math.abs(clampedAngle) > Math.PI / 4) {
+      const horizontalBias = (Math.random() - 0.5) * 0.4; // ±0.2 radians
+      clampedAngle = clampedAngle * 0.7 + horizontalBias * 0.3;
+    }
+
+    // Get current ball speed
+    const currentSpeed = this.getSpeed();
+
+    // Calculate new velocity components
+    let newDx, newDy;
+
+    if (paddle.side === "left") {
+      const minHorizontalSpeed = currentSpeed * 0.3;
+      newDx = Math.max(
+        minHorizontalSpeed,
+        Math.abs(Math.cos(clampedAngle) * currentSpeed)
+      );
+      newDy = Math.sin(clampedAngle) * currentSpeed;
+    } else {
+      const minHorizontalSpeed = currentSpeed * 0.3;
+      newDx = -Math.max(
+        minHorizontalSpeed,
+        Math.abs(Math.cos(clampedAngle) * currentSpeed)
+      );
+      newDy = Math.sin(clampedAngle) * currentSpeed;
+    }
+
+    // Apply new velocities
+    this.dx = newDx;
+    this.dy = newDy;
+
+    // Ensure minimum horizontal velocity to prevent stalling
+    this.ensureMinimumHorizontalVelocity(0.3);
+
+    this.lastHitBy = paddle.side;
+
+    // Increase ball speed gradually
+    this.increaseSpeed(CONFIG.SPEED_INCREMENT);
+
+    // Emit paddle collision event
+    eventBus.emit("ball:paddleCollision", {
+      ball: this,
+      paddle,
+      x: this.x,
+      y: this.y,
+    });
   }
 
   // Reset ball to center
@@ -202,6 +273,7 @@ class Ball {
     this.effects.clear();
     this.currentSpeedMultiplier = 1;
     this.baseSpeed = CONFIG.BALL_SPEED;
+    this.portalCooldown = 0;
 
     // Clear trail
     this.trail.clear();
@@ -234,16 +306,6 @@ class Ball {
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Retro scanlines effect
-    // ctx.strokeStyle = "#aa0000";
-    // ctx.lineWidth = 1;
-    // for (let i = -this.radius; i < this.radius; i += 3) {
-    //   ctx.beginPath();
-    //   ctx.moveTo(this.x - this.radius, this.y + i);
-    //   ctx.lineTo(this.x + this.radius, this.y + i);
-    //   ctx.stroke();
-    // }
-
     // Glowing border for powerup effects
     if (this.effects.size > 0) {
       ctx.strokeStyle = "#ffff00";
@@ -267,11 +329,19 @@ class Ball {
 
   // Clone ball (for powerup effect)
   clone() {
-    const clone = new Ball(this.x, this.y, this.game);
+    const clone = new Ball(this.x, this.y);
     clone.dx = -this.dx;
     clone.dy = this.dy;
     clone.setSpeed(this.getSpeed());
     clone.radius = this.radius;
+    clone.baseSpeed = this.baseSpeed;
+    clone.currentSpeedMultiplier = this.currentSpeedMultiplier;
+
+    // Copy active effects
+    this.effects.forEach((effectData, type) => {
+      clone.addEffect(type, effectData.effect);
+    });
+
     return clone;
   }
 }

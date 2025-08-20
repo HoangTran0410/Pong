@@ -1,13 +1,13 @@
-import { CONFIG } from "./config.js";
+import { CONFIG } from "../config/game.js";
+import eventBus from "../core/EventBus.js";
 
-// Paddle Class
+// Paddle Entity - Self-contained paddle object with AI, input handling, and rendering
 class Paddle {
-  constructor(x, y, side, mode, game = null) {
+  constructor(x, y, side, mode = "ai") {
     this.x = x;
     this.y = y;
     this.side = side; // 'left' or 'right'
     this.mode = mode; // 'keyboard', 'mouse', 'ai'
-    this.game = game; // Store game reference for particle effects
     this.width = CONFIG.PADDLE_WIDTH;
     this.height = CONFIG.PADDLE_HEIGHT;
     this.speed = CONFIG.PADDLE_SPEED;
@@ -15,12 +15,12 @@ class Paddle {
 
     // AI-specific properties
     this.aiVelocity = 0;
-    this.aiMaxSpeed = CONFIG.PADDLE_SPEED * CONFIG.AI_MAX_SPEED_MULTIPLIER; // AI moves slower than player
-    this.aiAcceleration = CONFIG.AI_ACCELERATION; // How quickly AI accelerates
-    this.aiDeceleration = CONFIG.AI_DECELERATION; // How quickly AI decelerates
-    this.aiReactionDelay = 0; // Simulate human reaction time
-    this.aiPredictionError = CONFIG.AI_PREDICTION_ERROR; // How much error in ball prediction
-    this.aiTargetOffset = 0; // Random offset for target position
+    this.aiMaxSpeed = CONFIG.PADDLE_SPEED * CONFIG.AI_MAX_SPEED_MULTIPLIER;
+    this.aiAcceleration = CONFIG.AI_ACCELERATION;
+    this.aiDeceleration = CONFIG.AI_DECELERATION;
+    this.aiReactionDelay = 0;
+    this.aiPredictionError = CONFIG.AI_PREDICTION_ERROR;
+    this.aiTargetOffset = 0;
 
     // Powerup effects
     this.effects = new Map();
@@ -34,13 +34,13 @@ class Paddle {
   }
 
   // Update paddle position based on mode
-  update(keys, inputY, gameState) {
+  update(inputState, gameState) {
     switch (this.mode) {
       case "keyboard":
-        this.updateKeyboard(keys);
+        this.updateKeyboard(inputState.keys);
         break;
       case "mouse":
-        this.updatePointer(inputY);
+        this.updatePointer(inputState.mouseY);
         break;
       case "ai":
         this.updateAI(gameState);
@@ -129,7 +129,6 @@ class Paddle {
 
       // Add random offset to target (makes AI less predictable)
       if (Math.random() < 0.1) {
-        // 10% chance to change offset
         this.aiTargetOffset = (Math.random() - 0.5) * 40; // ±20 pixels
       }
 
@@ -146,7 +145,6 @@ class Paddle {
 
       if (Math.abs(distanceToTarget) > 5) {
         // Only move if significantly off target
-        // Accelerate towards target
         this.aiVelocity += direction * this.aiAcceleration;
 
         // Limit maximum speed
@@ -166,7 +164,7 @@ class Paddle {
         // Decelerate when close to target
         this.aiVelocity *= this.aiDeceleration;
 
-        // Add small random movement when "idle" (simulates human fidgeting)
+        // Add small random movement when "idle"
         if (Math.random() < CONFIG.AI_IDLE_MOVEMENT_CHANCE) {
           this.y += (Math.random() - 0.5) * 3;
         }
@@ -174,7 +172,6 @@ class Paddle {
 
       // Occasionally add reaction delay to simulate human behavior
       if (Math.random() < CONFIG.AI_REACTION_DELAY_CHANCE) {
-        // 2% chance per frame
         this.aiReactionDelay = Math.floor(Math.random() * 3) + 1;
       }
     } else {
@@ -236,7 +233,6 @@ class Paddle {
 
   // Reflect ball with shield
   reflectBallWithShield(ball) {
-    // Increment reflection count
     this.shieldReflections++;
 
     // Reflect the ball back in the opposite direction
@@ -255,41 +251,16 @@ class Paddle {
       this.removeShield();
     }
 
-    // Create shield reflection particles
-    if (this.game && this.game.createParticleEffect) {
-      this.game.createParticleEffect(ball.x, ball.y, "shield_reflection");
-    }
+    // Emit shield reflection event
+    eventBus.emit("paddle:shieldReflection", {
+      paddle: this,
+      ball,
+      x: ball.x,
+      y: ball.y,
+    });
   }
 
-  // Render shield
-  renderShield(ctx) {
-    const shieldOffset = this.side === "left" ? -15 : 15;
-    const shieldX = this.x + shieldOffset;
-
-    // Shield background (semi-transparent) - covers full table height
-    ctx.fillStyle = "rgba(0, 150, 255, 0.3)";
-    ctx.fillRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
-
-    // Shield border - covers full table height
-    ctx.strokeStyle = "#0096ff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
-
-    // Shield energy effect - covers full table height
-    ctx.strokeStyle = "#00ffff";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-    ctx.strokeRect(shieldX - 1, -1, 12, CONFIG.CANVAS_HEIGHT + 2);
-    ctx.setLineDash([]);
-
-    // Shield icon - positioned at paddle center
-    // ctx.fillStyle = "#ffffff";
-    // ctx.font = "12px Arial";
-    // ctx.textAlign = "center";
-    // ctx.fillText("🛡️", shieldX + 5, this.y + this.currentHeight / 2 + 4);
-  }
-
-  // Check collision with ball - improved with more varied hit angles
+  // Check collision with ball
   checkCollision(ball) {
     const paddleLeft = this.x;
     const paddleRight = this.x + this.width;
@@ -326,67 +297,33 @@ class Paddle {
       ball.y + ball.radius > paddleTop &&
       ball.y - ball.radius < paddleBottom
     ) {
-      // Calculate hit point relative to paddle center
-      const hitPoint = (ball.y - this.y) / this.currentHeight;
-
-      // Add randomness to hit angle (makes AI less predictable)
-      const randomAngleOffset = (Math.random() - 0.5) * 0.3; // ±0.15 radians
-      const baseAngle = ((hitPoint - 0.5) * Math.PI) / 3; // -30 to +30 degrees
-      const finalAngle = baseAngle + randomAngleOffset;
-
-      // Clamp angle to reasonable bounds and ensure variety
-      let clampedAngle = Math.max(
-        -Math.PI / 3,
-        Math.min(Math.PI / 3, finalAngle)
-      );
-
-      // Prevent the ball from getting stuck in vertical patterns
-      // If the ball is moving very vertically, add some horizontal variation
-      if (Math.abs(clampedAngle) > Math.PI / 4) {
-        // If angle is > 45 degrees
-        const horizontalBias = (Math.random() - 0.5) * 0.4; // ±0.2 radians
-        clampedAngle = clampedAngle * 0.7 + horizontalBias * 0.3; // Blend with horizontal bias
-      }
-
-      // Get current ball speed
-      const currentSpeed = ball.getSpeed();
-
-      // Calculate new velocity components
-      let newDx, newDy;
-
-      if (this.side === "left") {
-        // Ensure minimum horizontal velocity to prevent near-vertical movement
-        const minHorizontalSpeed = currentSpeed * 0.3; // At least 30% of speed should be horizontal
-        newDx = Math.max(
-          minHorizontalSpeed,
-          Math.abs(Math.cos(clampedAngle) * currentSpeed)
-        );
-        newDy = Math.sin(clampedAngle) * currentSpeed;
-      } else {
-        // Ensure minimum horizontal velocity to prevent near-vertical movement
-        const minHorizontalSpeed = currentSpeed * 0.3; // At least 30% of speed should be horizontal
-        newDx = -Math.max(
-          minHorizontalSpeed,
-          Math.abs(Math.cos(clampedAngle) * currentSpeed)
-        );
-        newDy = Math.sin(clampedAngle) * currentSpeed;
-      }
-
-      // Apply new velocities
-      ball.dx = newDx;
-      ball.dy = newDy;
-
-      // Ensure minimum horizontal velocity to prevent stalling
-      ball.ensureMinimumHorizontalVelocity(0.3);
-
-      ball.lastHitBy = this.side;
-
-      // Increase ball speed gradually using the new method
-      ball.increaseSpeed(CONFIG.SPEED_INCREMENT);
-
+      ball.handlePaddleCollision(this);
       return true;
     }
+
     return false;
+  }
+
+  // Render shield
+  renderShield(ctx) {
+    const shieldOffset = this.side === "left" ? -15 : 15;
+    const shieldX = this.x + shieldOffset;
+
+    // Shield background (semi-transparent) - covers full table height
+    ctx.fillStyle = "rgba(0, 150, 255, 0.3)";
+    ctx.fillRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
+
+    // Shield border - covers full table height
+    ctx.strokeStyle = "#0096ff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
+
+    // Shield energy effect - covers full table height
+    ctx.strokeStyle = "#00ffff";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(shieldX - 1, -1, 12, CONFIG.CANVAS_HEIGHT + 2);
+    ctx.setLineDash([]);
   }
 
   // Render paddle with retro style

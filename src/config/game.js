@@ -21,7 +21,7 @@ export const CONFIG = {
 
   // Mouse Control Settings
   MOUSE_IMMEDIATE_MOVEMENT: true, // Mouse control is immediate (false for smooth movement)
-  MOUSE_DEBUG: false, // Enable debug logging for mouse coordinates (temporarily enabled for testing)
+  MOUSE_DEBUG: false, // Enable debug logging for mouse coordinates
 
   // Ball
   BALL_SIZE: 10,
@@ -38,7 +38,7 @@ export const CONFIG = {
 
   // Powerups
   POWERUP_SIZE: 30,
-  POWERUP_SPAWN_RATE: 0.02, // 2% chance per frame (increased from 0.5%)
+  POWERUP_SPAWN_RATE: 0.02, // 2% chance per frame
   POWERUP_DURATION: 10000, // 10 seconds
   MAX_POWERUPS_ON_SCREEN: 3,
 

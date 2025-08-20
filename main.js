@@ -1,4 +1,4 @@
-import Game from "./game.js";
+import Game from "./src/core/Game.js";
 
 // Main Application Entry Point
 class PongApp {

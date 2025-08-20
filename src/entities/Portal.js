@@ -166,7 +166,7 @@ class Portal extends GameObject {
         const armOffset = (arm * Math.PI * 2) / 4 + (layer * Math.PI) / 4;
 
         ctx.beginPath();
-        for (let i = 0; i <= 25; i++) {
+        for (let i = 0; i <= 5; i++) {
           const spiralTime = time * (1 + layer * 0.5);
           const angle = spiralTime + armOffset + i * 0.25;
           const radius = (this.radius - 8 - layer * 3) * (1 - i / 25);
@@ -217,30 +217,44 @@ class Portal extends GameObject {
 
     // Enhanced lifetime warning
     const lifetimeRatio = 1 - age / this.maxLifetime;
-    if (lifetimeRatio < 0.3) {
-      const warningPulse = Math.sin(Date.now() * 0.015) * 0.5 + 0.5;
+    // if (lifetimeRatio < 0.3) {
+    //   const warningPulse = Math.sin(Date.now() * 0.015) * 0.5 + 0.5;
 
-      // Unstable energy discharge
-      for (let i = 0; i < 6; i++) {
-        const dischargeAngle = (i / 6) * Math.PI * 2 + time;
-        const dischargeLength = (15 + Math.random() * 10) * warningPulse;
+    //   // Unstable energy discharge
+    //   for (let i = 0; i < 6; i++) {
+    //     const dischargeAngle = (i / 6) * Math.PI * 2 + time;
+    //     const dischargeLength = (15 + Math.random() * 10) * warningPulse;
 
-        ctx.strokeStyle = "#ff4444";
-        ctx.lineWidth = 3;
-        ctx.globalAlpha = warningPulse * 0.8;
-        ctx.beginPath();
-        ctx.moveTo(
-          this.x + Math.cos(dischargeAngle) * (this.radius + 5),
-          this.y + Math.sin(dischargeAngle) * (this.radius + 5)
-        );
-        ctx.lineTo(
-          this.x +
-            Math.cos(dischargeAngle) * (this.radius + 5 + dischargeLength),
-          this.y +
-            Math.sin(dischargeAngle) * (this.radius + 5 + dischargeLength)
-        );
-        ctx.stroke();
-      }
+    //     ctx.strokeStyle = "#ff4444";
+    //     ctx.lineWidth = 3;
+    //     ctx.globalAlpha = warningPulse * 0.8;
+    //     ctx.beginPath();
+    //     ctx.moveTo(
+    //       this.x + Math.cos(dischargeAngle) * (this.radius + 5),
+    //       this.y + Math.sin(dischargeAngle) * (this.radius + 5)
+    //     );
+    //     ctx.lineTo(
+    //       this.x +
+    //         Math.cos(dischargeAngle) * (this.radius + 5 + dischargeLength),
+    //       this.y +
+    //         Math.sin(dischargeAngle) * (this.radius + 5 + dischargeLength)
+    //     );
+    //     ctx.stroke();
+    //   }
+    // }
+
+    // Lifetime indicator (similar to blackhole)
+    if (lifetimeRatio < 0.5) {
+      ctx.strokeStyle = lifetimeRatio < 0.2 ? "#ff4444" : "#ffaa44";
+      ctx.lineWidth = 3;
+      ctx.globalAlpha =
+        lifetimeRatio < 0.2
+          ? Math.sin(Date.now() * 0.01) * 0.5 + 0.5 // Pulsing warning for critical
+          : 0.8; // Steady warning for low
+
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 8, 0, Math.PI * 2 * lifetimeRatio);
+      ctx.stroke();
     }
 
     ctx.restore();
@@ -297,10 +311,25 @@ export class PortalPair {
     ctx.save();
     const age = Date.now() - this.created;
     const lifetimeAlpha = Math.max(0.3, 1 - age / this.portal1.maxLifetime);
+    const lifetimeRatio = 1 - age / this.portal1.maxLifetime;
 
-    ctx.globalAlpha = lifetimeAlpha * 0.5;
-    ctx.strokeStyle = "#00ffff";
-    ctx.lineWidth = 3;
+    // Change line color based on lifetime
+    let lineColor = "#00ffff"; // Default cyan
+    let lineAlpha = lifetimeAlpha * 0.5;
+
+    if (lifetimeRatio < 0.2) {
+      // Critical - pulsing red
+      lineColor = "#ff4444";
+      lineAlpha = lifetimeAlpha * (Math.sin(Date.now() * 0.01) * 0.3 + 0.7);
+    } else if (lifetimeRatio < 0.5) {
+      // Warning - orange/yellow
+      lineColor = "#ffaa44";
+      lineAlpha = lifetimeAlpha * 0.7;
+    }
+
+    ctx.globalAlpha = lineAlpha;
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = lifetimeRatio < 0.2 ? 4 : 3; // Thicker line when critical
     ctx.setLineDash([10, 5]);
     ctx.beginPath();
     ctx.moveTo(this.portal1.x, this.portal1.y);

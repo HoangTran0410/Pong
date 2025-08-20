@@ -6,19 +6,23 @@ class Paddle {
   constructor(x, y, side, mode = "ai") {
     this.x = x;
     this.y = y;
-    this.side = side; // 'left' or 'right'
+    this.side = side; // 'left' or 'right' (or 'top'/'bottom' in vertical mode)
     this.mode = mode; // 'keyboard', 'mouse', 'ai'
-    this.width = CONFIG.PADDLE_WIDTH;
-    this.height = CONFIG.PADDLE_HEIGHT;
+    this.width = CONFIG.getPaddleWidth();
+    this.height = CONFIG.getPaddleHeight();
     this.speed = CONFIG.PADDLE_SPEED;
     this.targetY = y;
+    this.targetX = x; // For vertical mode
 
-    // Velocity tracking for momentum transfer
+    // Velocity tracking for momentum transfer (works for both orientations)
     this.previousY = y;
+    this.previousX = x;
     this.velocity = 0;
+    this.velocityX = 0;
 
-    // AI-specific properties
+    // AI-specific properties (works for both orientations)
     this.aiVelocity = 0;
+    this.aiVelocityX = 0; // For vertical mode
     this.aiMaxSpeed = CONFIG.PADDLE_SPEED * CONFIG.AI_MAX_SPEED_MULTIPLIER;
     this.aiAcceleration = CONFIG.AI_ACCELERATION;
     this.aiDeceleration = CONFIG.AI_DECELERATION;
@@ -28,8 +32,10 @@ class Paddle {
 
     // Powerup effects
     this.effects = new Map();
-    this.baseHeight = CONFIG.PADDLE_HEIGHT;
+    this.baseHeight = CONFIG.getPaddleHeight();
+    this.baseWidth = CONFIG.getPaddleWidth();
     this.currentHeight = this.baseHeight;
+    this.currentWidth = this.baseWidth;
 
     // Shield properties
     this.hasShield = false;
@@ -41,13 +47,14 @@ class Paddle {
   update(inputState, gameState) {
     // Store previous position for velocity calculation
     this.previousY = this.y;
+    this.previousX = this.x;
 
     switch (this.mode) {
       case "keyboard":
         this.updateKeyboard(inputState.keys);
         break;
       case "mouse":
-        this.updatePointer(inputState.mouseY);
+        this.updatePointer(inputState.mouseY, inputState.mouseX);
         break;
       case "ai":
         this.updateAI(gameState);
@@ -57,40 +64,76 @@ class Paddle {
     // Apply powerup effects
     this.applyEffects();
 
-    // Keep paddle within bounds
-    this.y = Math.max(
-      0,
-      Math.min(CONFIG.CANVAS_HEIGHT - this.currentHeight, this.y)
-    );
+    // Keep paddle within bounds based on orientation
+    if (CONFIG.isVertical()) {
+      // Vertical mode: paddle moves horizontally
+      this.x = Math.max(
+        0,
+        Math.min(CONFIG.CANVAS_WIDTH - this.currentWidth, this.x)
+      );
+    } else {
+      // Horizontal mode: paddle moves vertically
+      this.y = Math.max(
+        0,
+        Math.min(CONFIG.CANVAS_HEIGHT - this.currentHeight, this.y)
+      );
+    }
 
     // Calculate velocity for momentum transfer
     this.velocity = this.y - this.previousY;
+    this.velocityX = this.x - this.previousX;
   }
 
   // Keyboard controls
   updateKeyboard(keys) {
-    if (this.side === "left") {
-      if (keys["w"] || keys["W"]) this.y -= this.speed;
-      if (keys["s"] || keys["S"]) this.y += this.speed;
+    if (CONFIG.isVertical()) {
+      // Vertical mode: horizontal movement
+      if (this.side === "left") {
+        // Top paddle
+        if (keys["a"] || keys["A"]) this.x -= this.speed;
+        if (keys["d"] || keys["D"]) this.x += this.speed;
+      } else {
+        // Bottom paddle
+        if (keys["ArrowLeft"]) this.x -= this.speed;
+        if (keys["ArrowRight"]) this.x += this.speed;
+      }
     } else {
-      if (keys["ArrowUp"]) this.y -= this.speed;
-      if (keys["ArrowDown"]) this.y += this.speed;
+      // Horizontal mode: vertical movement
+      if (this.side === "left") {
+        if (keys["w"] || keys["W"]) this.y -= this.speed;
+        if (keys["s"] || keys["S"]) this.y += this.speed;
+      } else {
+        if (keys["ArrowUp"]) this.y -= this.speed;
+        if (keys["ArrowDown"]) this.y += this.speed;
+      }
     }
   }
 
   // Pointer (mouse) controls - immediate and precise
-  updatePointer(inputY) {
-    if (inputY !== null && inputY !== undefined) {
-      // Calculate target position (center paddle on mouse)
-      this.targetY = inputY - this.currentHeight / 2;
+  updatePointer(inputY, inputX) {
+    if (CONFIG.isVertical()) {
+      // Vertical mode: follow mouse X position
+      if (inputX !== null && inputX !== undefined) {
+        this.targetX = inputX - this.currentWidth / 2;
 
-      if (CONFIG.MOUSE_IMMEDIATE_MOVEMENT) {
-        // Immediate movement - no speed limits or smoothing for mouse control
-        this.y = this.targetY;
-      } else {
-        // Smooth movement with configurable smoothing (for future use)
-        const alpha = 0.25; // smoothing factor
-        this.y += (this.targetY - this.y) * alpha;
+        if (CONFIG.MOUSE_IMMEDIATE_MOVEMENT) {
+          this.x = this.targetX;
+        } else {
+          const alpha = 0.25;
+          this.x += (this.targetX - this.x) * alpha;
+        }
+      }
+    } else {
+      // Horizontal mode: follow mouse Y position
+      if (inputY !== null && inputY !== undefined) {
+        this.targetY = inputY - this.currentHeight / 2;
+
+        if (CONFIG.MOUSE_IMMEDIATE_MOVEMENT) {
+          this.y = this.targetY;
+        } else {
+          const alpha = 0.25;
+          this.y += (this.targetY - this.y) * alpha;
+        }
       }
     }
   }
@@ -105,19 +148,61 @@ class Paddle {
       return;
     }
 
-    // Find the closest ball to this paddle moving toward it
+    // Get orientation-aware axis properties
+    const isVertical = CONFIG.isVertical();
+    const trackingAxis = isVertical ? "y" : "x";
+    const movementAxis = isVertical ? "x" : "y";
+    const ballVelocityAxis = isVertical ? "dy" : "dx";
+    const paddlePosition = isVertical ? this.x : this.y;
+    const paddleDimension = isVertical ? this.currentWidth : this.currentHeight;
+
+    // Find the closest ball moving toward this paddle
+    const closestBall = this.findClosestApproachingBall(
+      gameState.balls,
+      trackingAxis,
+      ballVelocityAxis
+    );
+
+    if (closestBall) {
+      this.trackBallAI(
+        closestBall,
+        trackingAxis,
+        movementAxis,
+        ballVelocityAxis,
+        paddlePosition,
+        paddleDimension,
+        isVertical
+      );
+
+      // Occasionally add reaction delay to simulate human behavior
+      if (Math.random() < CONFIG.AI_REACTION_DELAY_CHANCE) {
+        this.aiReactionDelay = Math.floor(Math.random() * 3) + 1;
+      }
+    } else {
+      this.returnToCenterAI(isVertical);
+    }
+
+    // Apply velocity damping to prevent jitter
+    this.aiVelocity *= 0.95;
+    this.aiVelocityX *= 0.95;
+  }
+
+  // Find closest ball moving toward this paddle
+  findClosestApproachingBall(balls, trackingAxis, ballVelocityAxis) {
     let closestBall = null;
     let minDistance = Infinity;
 
-    gameState.balls.forEach((ball) => {
-      if (this.side === "left" && ball.dx < 0) {
-        const distance = Math.abs(ball.x - this.x);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestBall = ball;
-        }
-      } else if (this.side === "right" && ball.dx > 0) {
-        const distance = Math.abs(ball.x - this.x);
+    const isMovingTowardPaddle = (ball) => {
+      if (this.side === "left") {
+        return ballVelocityAxis === "dy" ? ball.dy < 0 : ball.dx < 0; // Top or Left paddle
+      } else {
+        return ballVelocityAxis === "dy" ? ball.dy > 0 : ball.dx > 0; // Bottom or Right paddle
+      }
+    };
+
+    balls.forEach((ball) => {
+      if (isMovingTowardPaddle(ball)) {
+        const distance = Math.abs(ball[trackingAxis] - this[trackingAxis]);
         if (distance < minDistance) {
           minDistance = distance;
           closestBall = ball;
@@ -125,67 +210,112 @@ class Paddle {
       }
     });
 
-    if (closestBall) {
-      // Calculate time to reach paddle
-      const timeToReach =
-        Math.abs(closestBall.x - this.x) /
-        Math.max(1e-3, Math.abs(closestBall.dx));
+    return closestBall;
+  }
 
-      // Predict ball position with some error (simulates human prediction)
-      const predictionError =
-        (Math.random() - 0.5) * this.aiPredictionError * this.currentHeight;
-      const predictedY =
-        closestBall.y + closestBall.dy * timeToReach + predictionError;
+  // Track ball and move AI paddle accordingly
+  trackBallAI(
+    ball,
+    trackingAxis,
+    movementAxis,
+    ballVelocityAxis,
+    paddlePosition,
+    paddleDimension,
+    isVertical
+  ) {
+    // Calculate time to reach paddle
+    const timeToReach =
+      Math.abs(ball[trackingAxis] - this[trackingAxis]) /
+      Math.max(1e-3, Math.abs(ball[ballVelocityAxis]));
 
-      // Add random offset to target (makes AI less predictable)
-      if (Math.random() < 0.1) {
-        this.aiTargetOffset = (Math.random() - 0.5) * 40; // ±20 pixels
-      }
+    // Predict ball position with some error (simulates human prediction)
+    const predictionError =
+      (Math.random() - 0.5) * this.aiPredictionError * paddleDimension;
+    const predictedPosition =
+      ball[movementAxis] +
+      ball[isVertical ? "dx" : "dy"] * timeToReach +
+      predictionError;
 
-      // Calculate target position with offset
-      this.targetY = predictedY + this.aiTargetOffset - this.currentHeight / 2;
+    // Add random offset to target (makes AI less predictable)
+    if (Math.random() < 0.1) {
+      this.aiTargetOffset = (Math.random() - 0.5) * 40; // ±20 pixels
+    }
 
-      // Add some randomness to make AI less perfect
-      const randomWiggle = ((Math.random() - 0.5) * this.currentHeight) / 2;
-      this.targetY += randomWiggle;
+    // Calculate target position with offset
+    const targetPosition =
+      predictedPosition + this.aiTargetOffset - paddleDimension / 2;
 
-      // Smooth movement with acceleration/deceleration
-      const distanceToTarget = this.targetY - this.y;
-      const direction = Math.sign(distanceToTarget);
+    // Add some randomness to make AI less perfect
+    const randomWiggle = ((Math.random() - 0.5) * paddleDimension) / 2;
+    const finalTarget = targetPosition + randomWiggle;
 
-      if (Math.abs(distanceToTarget) > 5) {
-        // Only move if significantly off target
-        this.aiVelocity += direction * this.aiAcceleration;
+    // Update target based on movement axis
+    if (isVertical) {
+      this.targetX = finalTarget;
+    } else {
+      this.targetY = finalTarget;
+    }
 
-        // Limit maximum speed
-        this.aiVelocity = Math.max(
-          -this.aiMaxSpeed,
-          Math.min(this.aiMaxSpeed, this.aiVelocity)
-        );
+    // Move paddle using shared movement logic
+    this.moveToTargetAI(isVertical);
+  }
 
-        // Move paddle
-        this.y += this.aiVelocity;
+  // Move paddle toward target position
+  moveToTargetAI(isVertical) {
+    const currentPos = isVertical ? this.x : this.y;
+    const targetPos = isVertical ? this.targetX : this.targetY;
+    const distanceToTarget = targetPos - currentPos;
+    const direction = Math.sign(distanceToTarget);
 
-        // Add some micro-adjustments for more human-like movement
-        if (Math.random() < CONFIG.AI_MICRO_MOVEMENT_CHANCE) {
-          this.y += (Math.random() - 0.5) * 2;
-        }
-      } else {
-        // Decelerate when close to target
-        this.aiVelocity *= this.aiDeceleration;
+    const velocityKey = isVertical ? "aiVelocityX" : "aiVelocity";
+    const positionKey = isVertical ? "x" : "y";
 
-        // Add small random movement when "idle"
-        if (Math.random() < CONFIG.AI_IDLE_MOVEMENT_CHANCE) {
-          this.y += (Math.random() - 0.5) * 3;
-        }
-      }
+    if (Math.abs(distanceToTarget) > 5) {
+      // Only move if significantly off target
+      this[velocityKey] += direction * this.aiAcceleration;
 
-      // Occasionally add reaction delay to simulate human behavior
-      if (Math.random() < CONFIG.AI_REACTION_DELAY_CHANCE) {
-        this.aiReactionDelay = Math.floor(Math.random() * 3) + 1;
+      // Limit maximum speed
+      this[velocityKey] = Math.max(
+        -this.aiMaxSpeed,
+        Math.min(this.aiMaxSpeed, this[velocityKey])
+      );
+
+      // Move paddle
+      this[positionKey] += this[velocityKey];
+
+      // Add some micro-adjustments for more human-like movement
+      if (Math.random() < CONFIG.AI_MICRO_MOVEMENT_CHANCE) {
+        this[positionKey] += (Math.random() - 0.5) * 2;
       }
     } else {
-      // No ball coming, slowly return to center with some randomness
+      // Decelerate when close to target
+      this[velocityKey] *= this.aiDeceleration;
+
+      // Add small random movement when "idle"
+      if (Math.random() < CONFIG.AI_IDLE_MOVEMENT_CHANCE) {
+        this[positionKey] += (Math.random() - 0.5) * 3;
+      }
+    }
+  }
+
+  // Return to center when no ball is approaching
+  returnToCenterAI(isVertical) {
+    if (isVertical) {
+      const centerX = CONFIG.CANVAS_WIDTH / 2 - this.currentWidth / 2;
+      const distanceToCenter = centerX - this.x;
+
+      if (Math.abs(distanceToCenter) > 10) {
+        this.aiVelocityX +=
+          Math.sign(distanceToCenter) * this.aiAcceleration * 0.5;
+        this.aiVelocityX = Math.max(
+          -this.aiMaxSpeed * 0.5,
+          Math.min(this.aiMaxSpeed * 0.5, this.aiVelocityX)
+        );
+        this.x += this.aiVelocityX;
+      } else {
+        this.aiVelocityX *= this.aiDeceleration;
+      }
+    } else {
       const centerY = CONFIG.CANVAS_HEIGHT / 2 - this.currentHeight / 2;
       const distanceToCenter = centerY - this.y;
 
@@ -201,9 +331,6 @@ class Paddle {
         this.aiVelocity *= this.aiDeceleration;
       }
     }
-
-    // Apply velocity damping to prevent jitter
-    this.aiVelocity *= 0.95;
   }
 
   // Apply powerup effects
@@ -217,6 +344,7 @@ class Paddle {
     });
 
     this.currentHeight = this.baseHeight * heightMultiplier;
+    this.currentWidth = this.baseWidth * heightMultiplier; // Apply same scaling to width
   }
 
   // Add powerup effect
@@ -273,7 +401,7 @@ class Paddle {
   // Check collision with ball
   checkCollision(ball) {
     const paddleLeft = this.x;
-    const paddleRight = this.x + this.width;
+    const paddleRight = this.x + this.currentWidth;
     const paddleTop = this.y;
     const paddleBottom = this.y + this.currentHeight;
 
@@ -340,16 +468,28 @@ class Paddle {
   render(ctx) {
     // Main paddle body
     ctx.fillStyle = CONFIG.COLORS.PADDLE;
-    ctx.fillRect(this.x, this.y, this.width, this.currentHeight);
+    ctx.fillRect(this.x, this.y, this.currentWidth, this.currentHeight);
 
     // Retro scanlines effect
     ctx.strokeStyle = "#00aa00";
     ctx.lineWidth = 1;
-    for (let i = 0; i < this.currentHeight; i += 4) {
-      ctx.beginPath();
-      ctx.moveTo(this.x, this.y + i);
-      ctx.lineTo(this.x + this.width, this.y + i);
-      ctx.stroke();
+
+    if (CONFIG.isVertical()) {
+      // Vertical scanlines for horizontal paddles
+      for (let i = 0; i < this.currentWidth; i += 4) {
+        ctx.beginPath();
+        ctx.moveTo(this.x + i, this.y);
+        ctx.lineTo(this.x + i, this.y + this.currentHeight);
+        ctx.stroke();
+      }
+    } else {
+      // Horizontal scanlines for vertical paddles
+      for (let i = 0; i < this.currentHeight; i += 4) {
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y + i);
+        ctx.lineTo(this.x + this.currentWidth, this.y + i);
+        ctx.stroke();
+      }
     }
 
     // Glowing border for powerup effects
@@ -361,7 +501,7 @@ class Paddle {
       ctx.strokeRect(
         this.x - 2,
         this.y - 2,
-        this.width + 4,
+        this.currentWidth + 4,
         this.currentHeight + 4
       );
       ctx.shadowBlur = 0;
@@ -375,19 +515,29 @@ class Paddle {
 
   // Reset paddle to default state
   reset() {
-    // Reset position based on side
-    if (this.side === "left") {
-      this.x = CONFIG.PADDLE_MARGIN;
-    } else {
-      this.x = CONFIG.CANVAS_WIDTH - CONFIG.PADDLE_MARGIN - CONFIG.PADDLE_WIDTH;
-    }
-    this.y = CONFIG.CANVAS_HEIGHT / 2 - this.baseHeight / 2;
+    // Reset dimensions and position based on orientation
+    this.baseWidth = CONFIG.getPaddleWidth();
+    this.baseHeight = CONFIG.getPaddleHeight();
+    this.width = this.baseWidth;
+    this.height = this.baseHeight;
+    this.currentWidth = this.baseWidth;
     this.currentHeight = this.baseHeight;
+
+    // Reset position using orientation-aware positioning
+    const position =
+      this.side === "left"
+        ? CONFIG.getLeftPaddlePosition()
+        : CONFIG.getRightPaddlePosition();
+    this.x = position.x;
+    this.y = position.y;
+
     this.effects.clear();
 
     // Reset velocity tracking
     this.previousY = this.y;
+    this.previousX = this.x;
     this.velocity = 0;
+    this.velocityX = 0;
 
     // Reset shield
     this.hasShield = false;
@@ -395,6 +545,7 @@ class Paddle {
 
     // Reset AI properties
     this.aiVelocity = 0;
+    this.aiVelocityX = 0;
     this.aiReactionDelay = 0;
     this.aiTargetOffset = 0;
   }

@@ -79,6 +79,44 @@ body::before {
   max-width: 800px;
 }
 
+/* Orientation selection */
+.orientation-selection {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.orientation-selection h3 {
+  color: #00ff00;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+.orientation-selection select {
+  background: #001100;
+  color: #00ff00;
+  border: 2px solid #00aa00;
+  padding: 0.75rem 1rem;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  min-width: 300px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.orientation-selection select:hover {
+  border-color: #00ff00;
+  background: #002200;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.orientation-selection select:focus {
+  outline: none;
+  border-color: #00ffff;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
 /* Horizontal paddle selection */
 .paddle-controls {
   display: flex;

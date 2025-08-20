@@ -122,8 +122,17 @@ class RenderSystem {
     this.ctx.lineWidth = 3;
     this.ctx.setLineDash([10, 10]);
     this.ctx.beginPath();
-    this.ctx.moveTo(this.canvas.width / 2, 0);
-    this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+
+    if (CONFIG.isVertical()) {
+      // Horizontal center line for vertical mode
+      this.ctx.moveTo(0, this.canvas.height / 2);
+      this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+    } else {
+      // Vertical center line for horizontal mode
+      this.ctx.moveTo(this.canvas.width / 2, 0);
+      this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+    }
+
     this.ctx.stroke();
     this.ctx.setLineDash([]);
   }

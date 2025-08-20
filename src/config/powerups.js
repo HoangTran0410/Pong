@@ -75,7 +75,7 @@ export const POWERUP_CONFIG = {
     label: "Portal",
     effect: { portal: true, duration: 0 },
     color: "#00aaff", // Cyan blue - Strategic advantage
-    category: "beneficial",
+    category: "chaotic",
   },
   random_wall: {
     emoji: "🧱",
@@ -103,6 +103,13 @@ export const POWERUP_CONFIG = {
     label: "Blackhole",
     effect: { blackhole: true, duration: 0 },
     color: "#8844ff", // Dark purple - Chaotic gravitational effect
+    category: "chaotic",
+  },
+  orientation_flip: {
+    emoji: "☝️",
+    label: "Orientation Flip",
+    effect: { orientationFlip: true, duration: 10000 }, // 10 seconds
+    color: "#ff9900", // Orange - Game-changing effect
     category: "chaotic",
   },
 };

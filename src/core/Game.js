@@ -9,11 +9,14 @@ import eventBus from "./EventBus.js";
 
 // Main Game Class - Orchestrates all systems and manages game state
 class Game {
-  constructor(canvas) {
+  constructor(canvas, orientation = "horizontal") {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.isRunning = false;
     this.isPaused = false;
+
+    // Set game orientation
+    CONFIG.setOrientation(orientation);
 
     // Game state
     this.leftScore = 0;
@@ -29,6 +32,8 @@ class Game {
     this.keys = {};
     this.pointerYLeft = null;
     this.pointerYRight = null;
+    this.pointerXLeft = null;
+    this.pointerXRight = null;
 
     // Game entities
     this.leftPaddle = null;
@@ -53,20 +58,13 @@ class Game {
     // Set initial canvas size
     CONFIG.updateCanvasSize(this.canvas);
 
-    // Create paddles
-    this.leftPaddle = new Paddle(
-      CONFIG.PADDLE_MARGIN,
-      CONFIG.CANVAS_HEIGHT / 2 - CONFIG.PADDLE_HEIGHT / 2,
-      "left",
-      "ai"
-    );
+    // Create paddles with orientation-aware positioning
+    const leftPos = CONFIG.getLeftPaddlePosition();
+    const rightPos = CONFIG.getRightPaddlePosition();
 
-    this.rightPaddle = new Paddle(
-      CONFIG.CANVAS_WIDTH - CONFIG.PADDLE_MARGIN - CONFIG.PADDLE_WIDTH,
-      CONFIG.CANVAS_HEIGHT / 2 - CONFIG.PADDLE_HEIGHT / 2,
-      "right",
-      "ai"
-    );
+    this.leftPaddle = new Paddle(leftPos.x, leftPos.y, "left", "ai");
+
+    this.rightPaddle = new Paddle(rightPos.x, rightPos.y, "right", "ai");
 
     // Create initial ball
     this.balls = [new Ball(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2)];
@@ -129,6 +127,14 @@ class Game {
         ball.removeEffect(data.type);
       }
     });
+
+    // Orientation changes
+    eventBus.subscribe("game:orientationChanged", (data) => {
+      this.handleOrientationChange(
+        data.newOrientation,
+        data.originalOrientation
+      );
+    });
   }
 
   // Setup input handlers
@@ -154,6 +160,8 @@ class Game {
 
         this.pointerYLeft = canvasY;
         this.pointerYRight = canvasY;
+        this.pointerXLeft = canvasX;
+        this.pointerXRight = canvasX;
       } catch (error) {
         console.error("Error in mouse coordinate calculation:", error);
         const rect = this.canvas.getBoundingClientRect();
@@ -169,6 +177,8 @@ class Game {
     this.canvas.addEventListener("mouseleave", () => {
       this.pointerYLeft = null;
       this.pointerYRight = null;
+      this.pointerXLeft = null;
+      this.pointerXRight = null;
     });
   }
 
@@ -194,14 +204,14 @@ class Game {
       CONFIG.updateCanvasSize(this.canvas);
 
       if (this.isGameInitialized()) {
-        // Reposition paddles
-        this.leftPaddle.x = CONFIG.PADDLE_MARGIN;
-        this.leftPaddle.y = CONFIG.CANVAS_HEIGHT / 2 - CONFIG.PADDLE_HEIGHT / 2;
+        // Reposition paddles with orientation-aware positioning
+        const leftPos = CONFIG.getLeftPaddlePosition();
+        const rightPos = CONFIG.getRightPaddlePosition();
 
-        this.rightPaddle.x =
-          CONFIG.CANVAS_WIDTH - CONFIG.PADDLE_MARGIN - CONFIG.PADDLE_WIDTH;
-        this.rightPaddle.y =
-          CONFIG.CANVAS_HEIGHT / 2 - CONFIG.PADDLE_HEIGHT / 2;
+        this.leftPaddle.x = leftPos.x;
+        this.leftPaddle.y = leftPos.y;
+        this.rightPaddle.x = rightPos.x;
+        this.rightPaddle.y = rightPos.y;
 
         // Reposition balls to center
         this.balls.forEach((ball) => {
@@ -290,6 +300,12 @@ class Game {
           : this.rightPaddle.mode === "mouse"
           ? this.pointerYRight
           : null,
+      mouseX:
+        this.leftPaddle.mode === "mouse"
+          ? this.pointerXLeft
+          : this.rightPaddle.mode === "mouse"
+          ? this.pointerXRight
+          : null,
     };
 
     // Prepare game state
@@ -317,9 +333,12 @@ class Game {
 
     // Spawn new ball if no balls exist
     if (this.balls.length === 0) {
-      this.balls.push(
-        new Ball(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2)
+      const newBall = new Ball(
+        CONFIG.CANVAS_WIDTH / 2,
+        CONFIG.CANVAS_HEIGHT / 2
       );
+      newBall.resetVelocity(); // Ensure proper velocity for current orientation
+      this.balls.push(newBall);
     }
   }
 
@@ -450,8 +469,10 @@ class Game {
     this.leftPaddle.reset();
     this.rightPaddle.reset();
 
-    // Create new ball
-    this.balls = [new Ball(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2)];
+    // Create new ball with correct velocity for orientation
+    const newBall = new Ball(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+    newBall.resetVelocity();
+    this.balls = [newBall];
 
     // Clear systems
     this.powerupSystem.clear();
@@ -482,6 +503,55 @@ class Game {
     if (this.rightPaddle) {
       this.rightPaddle.mode = rightMode;
     }
+  }
+
+  // Handle orientation change from powerup
+  handleOrientationChange(newOrientation, originalOrientation) {
+    // Update paddle dimensions and positions
+    this.leftPaddle.width = CONFIG.getPaddleWidth();
+    this.leftPaddle.height = CONFIG.getPaddleHeight();
+    this.rightPaddle.width = CONFIG.getPaddleWidth();
+    this.rightPaddle.height = CONFIG.getPaddleHeight();
+
+    // Update base dimensions for powerup effects
+    this.leftPaddle.baseWidth = CONFIG.getPaddleWidth();
+    this.leftPaddle.baseHeight = CONFIG.getPaddleHeight();
+    this.leftPaddle.currentWidth = this.leftPaddle.baseWidth;
+    this.leftPaddle.currentHeight = this.leftPaddle.baseHeight;
+
+    this.rightPaddle.baseWidth = CONFIG.getPaddleWidth();
+    this.rightPaddle.baseHeight = CONFIG.getPaddleHeight();
+    this.rightPaddle.currentWidth = this.rightPaddle.baseWidth;
+    this.rightPaddle.currentHeight = this.rightPaddle.baseHeight;
+
+    // Reposition paddles
+    const leftPos = CONFIG.getLeftPaddlePosition();
+    const rightPos = CONFIG.getRightPaddlePosition();
+
+    this.leftPaddle.x = leftPos.x;
+    this.leftPaddle.y = leftPos.y;
+    this.rightPaddle.x = rightPos.x;
+    this.rightPaddle.y = rightPos.y;
+
+    // Re-apply any active effects
+    this.leftPaddle.applyEffects();
+    this.rightPaddle.applyEffects();
+
+    // Reset ball velocities for new orientation
+    this.balls.forEach((ball) => {
+      if (!ball.disabled) {
+        ball.resetVelocity();
+      }
+    });
+
+    // Show orientation change notification
+    // this.flashTextSystem.addFlashText(`${newOrientation.toUpperCase()} MODE!`, {
+    //   color: "#ff9900",
+    //   glowColor: "#ffbb44",
+    //   shadowColor: "#664400",
+    //   duration: 2000,
+    //   fontSize: 28,
+    // });
   }
 
   // Set powerup settings

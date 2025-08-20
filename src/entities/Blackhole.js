@@ -1,4 +1,3 @@
-import { CONFIG } from "../config/game.js";
 import GameObject from "./GameObject.js";
 import eventBus from "../core/EventBus.js";
 

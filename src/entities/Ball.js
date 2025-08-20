@@ -11,8 +11,18 @@ class Ball {
     this.y = y;
     this.radius = CONFIG.BALL_SIZE;
     this.baseRadius = CONFIG.BALL_SIZE;
-    this.dx = CONFIG.BALL_SPEED;
-    this.dy = 0;
+
+    // Set initial velocity based on orientation
+    if (CONFIG.isVertical()) {
+      // Vertical mode: ball moves toward top or bottom paddle
+      this.dx = 0;
+      this.dy = Math.random() < 0.5 ? -CONFIG.BALL_SPEED : CONFIG.BALL_SPEED;
+    } else {
+      // Horizontal mode: ball moves toward left or right paddle
+      this.dx = Math.random() < 0.5 ? -CONFIG.BALL_SPEED : CONFIG.BALL_SPEED;
+      this.dy = 0;
+    }
+
     this.lastHitBy = null;
 
     this.disabled = false;
@@ -45,6 +55,19 @@ class Ball {
     }
   }
 
+  // Reset ball velocity based on current orientation
+  resetVelocity() {
+    if (CONFIG.isVertical()) {
+      // Vertical mode: ball moves toward top or bottom paddle
+      this.dx = 0;
+      this.dy = Math.random() < 0.5 ? -CONFIG.BALL_SPEED : CONFIG.BALL_SPEED;
+    } else {
+      // Horizontal mode: ball moves toward left or right paddle
+      this.dx = Math.random() < 0.5 ? -CONFIG.BALL_SPEED : CONFIG.BALL_SPEED;
+      this.dy = 0;
+    }
+  }
+
   // Ensure minimum horizontal velocity to prevent vertical stalling
   ensureMinimumHorizontalVelocity(minHorizontalRatio = 0.3) {
     const currentSpeed = this.getSpeed();
@@ -70,6 +93,35 @@ class Ball {
         this.dy = newVerticalSpeed;
       } else {
         this.dy = -newVerticalSpeed;
+      }
+    }
+  }
+
+  // Ensure minimum vertical velocity to prevent horizontal stalling (for vertical mode)
+  ensureMinimumVerticalVelocity(minVerticalRatio = 0.3) {
+    const currentSpeed = this.getSpeed();
+    const verticalSpeed = Math.abs(this.dy);
+    const minVerticalSpeed = currentSpeed * minVerticalRatio;
+
+    if (verticalSpeed < minVerticalSpeed) {
+      const verticalDeficit = minVerticalSpeed - verticalSpeed;
+
+      if (this.dy >= 0) {
+        this.dy += verticalDeficit;
+      } else {
+        this.dy -= verticalDeficit;
+      }
+
+      // Adjust horizontal velocity to maintain total speed
+      const newVerticalSpeed = Math.abs(this.dy);
+      const newHorizontalSpeed = Math.sqrt(
+        currentSpeed * currentSpeed - newVerticalSpeed * newVerticalSpeed
+      );
+
+      if (this.dx >= 0) {
+        this.dx = newHorizontalSpeed;
+      } else {
+        this.dx = -newHorizontalSpeed;
       }
     }
   }
@@ -113,44 +165,89 @@ class Ball {
 
   // Check collision with walls
   checkWallCollision() {
-    // Top and bottom walls
-    if (
-      this.y - this.radius <= 0 ||
-      this.y + this.radius >= CONFIG.CANVAS_HEIGHT
-    ) {
-      this.dy = -this.dy;
-      this.y = Math.max(
-        this.radius,
-        Math.min(CONFIG.CANVAS_HEIGHT - this.radius, this.y)
-      );
+    if (CONFIG.isVertical()) {
+      // Vertical mode: paddles are top/bottom, scoring on left/right walls
+      // Left and right walls
+      if (
+        this.x - this.radius <= 0 ||
+        this.x + this.radius >= CONFIG.CANVAS_WIDTH
+      ) {
+        this.dx = -this.dx;
+        this.x = Math.max(
+          this.radius,
+          Math.min(CONFIG.CANVAS_WIDTH - this.radius, this.x)
+        );
 
-      // Emit wall collision event
-      eventBus.emit("ball:wallCollision", {
-        ball: this,
-        x: this.x,
-        y: this.y,
-        type: "wall_hit",
-      });
-    }
-
-    // Left and right walls (ball goes off screen)
-    if (this.x - this.radius <= 0) {
-      if (!this.disabled) {
-        eventBus.emit("ball:score", {
+        // Emit wall collision event
+        eventBus.emit("ball:wallCollision", {
           ball: this,
-          scorer: "right",
-          points: 1,
+          x: this.x,
+          y: this.y,
+          type: "wall_hit",
         });
-        this.disabled = true;
       }
-    } else if (this.x + this.radius >= CONFIG.CANVAS_WIDTH) {
-      if (!this.disabled) {
-        eventBus.emit("ball:score", {
+
+      // Top and bottom walls (ball goes off screen - scoring areas)
+      if (this.y - this.radius <= 0) {
+        if (!this.disabled) {
+          eventBus.emit("ball:score", {
+            ball: this,
+            scorer: "right", // Bottom paddle scores
+            points: 1,
+          });
+          this.disabled = true;
+        }
+      } else if (this.y + this.radius >= CONFIG.CANVAS_HEIGHT) {
+        if (!this.disabled) {
+          eventBus.emit("ball:score", {
+            ball: this,
+            scorer: "left", // Top paddle scores
+            points: 1,
+          });
+          this.disabled = true;
+        }
+      }
+    } else {
+      // Horizontal mode: original logic
+      // Top and bottom walls
+      if (
+        this.y - this.radius <= 0 ||
+        this.y + this.radius >= CONFIG.CANVAS_HEIGHT
+      ) {
+        this.dy = -this.dy;
+        this.y = Math.max(
+          this.radius,
+          Math.min(CONFIG.CANVAS_HEIGHT - this.radius, this.y)
+        );
+
+        // Emit wall collision event
+        eventBus.emit("ball:wallCollision", {
           ball: this,
-          scorer: "left",
-          points: 1,
+          x: this.x,
+          y: this.y,
+          type: "wall_hit",
         });
-        this.disabled = true;
+      }
+
+      // Left and right walls (ball goes off screen)
+      if (this.x - this.radius <= 0) {
+        if (!this.disabled) {
+          eventBus.emit("ball:score", {
+            ball: this,
+            scorer: "right",
+            points: 1,
+          });
+          this.disabled = true;
+        }
+      } else if (this.x + this.radius >= CONFIG.CANVAS_WIDTH) {
+        if (!this.disabled) {
+          eventBus.emit("ball:score", {
+            ball: this,
+            scorer: "left",
+            points: 1,
+          });
+          this.disabled = true;
+        }
       }
     }
   }
@@ -203,57 +300,113 @@ class Ball {
 
   // Handle paddle collision
   handlePaddleCollision(paddle) {
-    // Calculate hit point relative to paddle center
-    const hitPoint = (this.y - paddle.y) / paddle.currentHeight;
-
-    // Add randomness to hit angle (makes AI less predictable)
-    const randomAngleOffset = (Math.random() - 0.5) * 0.3; // ±0.15 radians
-    const baseAngle = ((hitPoint - 0.5) * Math.PI) / 3; // -30 to +30 degrees
-    const finalAngle = baseAngle + randomAngleOffset;
-
-    // Clamp angle to reasonable bounds and ensure variety
-    let clampedAngle = clamp(finalAngle, -Math.PI / 3, Math.PI / 3);
-
-    // Prevent the ball from getting stuck in vertical patterns
-    if (Math.abs(clampedAngle) > Math.PI / 4) {
-      const horizontalBias = (Math.random() - 0.5) * 0.4; // ±0.2 radians
-      clampedAngle = clampedAngle * 0.7 + horizontalBias * 0.3;
-    }
-
     // Get current ball speed
     const currentSpeed = this.getSpeed();
 
-    // Calculate new velocity components
-    let newDx, newDy;
+    if (CONFIG.isVertical()) {
+      // Vertical mode: paddles are horizontal (top/bottom)
+      // Calculate hit point relative to paddle center along X axis
+      const hitPoint = (this.x - paddle.x) / paddle.currentWidth;
 
-    if (paddle.side === "left") {
-      const minHorizontalSpeed = currentSpeed * 0.3;
-      newDx = Math.max(
-        minHorizontalSpeed,
-        Math.abs(Math.cos(clampedAngle) * currentSpeed)
-      );
-      newDy = Math.sin(clampedAngle) * currentSpeed;
+      // Add randomness to hit angle (makes AI less predictable)
+      const randomAngleOffset = (Math.random() - 0.5) * 0.3; // ±0.15 radians
+      const baseAngle = ((hitPoint - 0.5) * Math.PI) / 3; // -30 to +30 degrees
+      const finalAngle = baseAngle + randomAngleOffset;
+
+      // Clamp angle to reasonable bounds and ensure variety
+      let clampedAngle = clamp(finalAngle, -Math.PI / 3, Math.PI / 3);
+
+      // Prevent the ball from getting stuck in horizontal patterns
+      if (Math.abs(clampedAngle) > Math.PI / 4) {
+        const verticalBias = (Math.random() - 0.5) * 0.4; // ±0.2 radians
+        clampedAngle = clampedAngle * 0.7 + verticalBias * 0.3;
+      }
+
+      // Calculate new velocity components
+      let newDx, newDy;
+
+      if (paddle.side === "left") {
+        // Top paddle
+        const minVerticalSpeed = currentSpeed * 0.3;
+        newDy = Math.max(
+          minVerticalSpeed,
+          Math.abs(Math.cos(clampedAngle) * currentSpeed)
+        );
+        newDx = Math.sin(clampedAngle) * currentSpeed;
+      } else {
+        // Bottom paddle
+        const minVerticalSpeed = currentSpeed * 0.3;
+        newDy = -Math.max(
+          minVerticalSpeed,
+          Math.abs(Math.cos(clampedAngle) * currentSpeed)
+        );
+        newDx = Math.sin(clampedAngle) * currentSpeed;
+      }
+
+      // Add paddle momentum transfer for more realistic physics
+      const paddleVelocityX =
+        paddle.velocityX * CONFIG.PADDLE_MOMENTUM_TRANSFER;
+
+      // Apply paddle momentum to ball's horizontal velocity
+      newDx += paddleVelocityX;
+
+      // Apply new velocities
+      this.dx = newDx;
+      this.dy = newDy;
+
+      // Ensure minimum vertical velocity to prevent horizontal stalling
+      this.ensureMinimumVerticalVelocity(0.3);
     } else {
-      const minHorizontalSpeed = currentSpeed * 0.3;
-      newDx = -Math.max(
-        minHorizontalSpeed,
-        Math.abs(Math.cos(clampedAngle) * currentSpeed)
-      );
-      newDy = Math.sin(clampedAngle) * currentSpeed;
+      // Horizontal mode: original logic
+      // Calculate hit point relative to paddle center
+      const hitPoint = (this.y - paddle.y) / paddle.currentHeight;
+
+      // Add randomness to hit angle (makes AI less predictable)
+      const randomAngleOffset = (Math.random() - 0.5) * 0.3; // ±0.15 radians
+      const baseAngle = ((hitPoint - 0.5) * Math.PI) / 3; // -30 to +30 degrees
+      const finalAngle = baseAngle + randomAngleOffset;
+
+      // Clamp angle to reasonable bounds and ensure variety
+      let clampedAngle = clamp(finalAngle, -Math.PI / 3, Math.PI / 3);
+
+      // Prevent the ball from getting stuck in vertical patterns
+      if (Math.abs(clampedAngle) > Math.PI / 4) {
+        const horizontalBias = (Math.random() - 0.5) * 0.4; // ±0.2 radians
+        clampedAngle = clampedAngle * 0.7 + horizontalBias * 0.3;
+      }
+
+      // Calculate new velocity components
+      let newDx, newDy;
+
+      if (paddle.side === "left") {
+        const minHorizontalSpeed = currentSpeed * 0.3;
+        newDx = Math.max(
+          minHorizontalSpeed,
+          Math.abs(Math.cos(clampedAngle) * currentSpeed)
+        );
+        newDy = Math.sin(clampedAngle) * currentSpeed;
+      } else {
+        const minHorizontalSpeed = currentSpeed * 0.3;
+        newDx = -Math.max(
+          minHorizontalSpeed,
+          Math.abs(Math.cos(clampedAngle) * currentSpeed)
+        );
+        newDy = Math.sin(clampedAngle) * currentSpeed;
+      }
+
+      // Add paddle momentum transfer for more realistic physics
+      const paddleVelocityY = paddle.velocity * CONFIG.PADDLE_MOMENTUM_TRANSFER;
+
+      // Apply paddle momentum to ball's vertical velocity
+      newDy += paddleVelocityY;
+
+      // Apply new velocities
+      this.dx = newDx;
+      this.dy = newDy;
+
+      // Ensure minimum horizontal velocity to prevent stalling
+      this.ensureMinimumHorizontalVelocity(0.3);
     }
-
-    // Add paddle momentum transfer for more realistic physics
-    const paddleVelocityY = paddle.velocity * CONFIG.PADDLE_MOMENTUM_TRANSFER;
-
-    // Apply paddle momentum to ball's vertical velocity
-    newDy += paddleVelocityY;
-
-    // Apply new velocities
-    this.dx = newDx;
-    this.dy = newDy;
-
-    // Ensure minimum horizontal velocity to prevent stalling
-    this.ensureMinimumHorizontalVelocity(0.3);
 
     this.lastHitBy = paddle.side;
 

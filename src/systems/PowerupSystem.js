@@ -22,6 +22,11 @@ class PowerupSystem {
     this.portals = [];
     this.blackholes = [];
 
+    // Orientation flip state
+    this.orientationFlipActive = false;
+    this.orientationFlipTimer = null;
+    this.originalOrientation = null;
+
     // Powerup settings
     this.powerupSettings = {
       powerupsEnabled: true,
@@ -192,6 +197,9 @@ class PowerupSystem {
     if (effect.blackhole) {
       this.applyBlackhole();
     }
+    if (effect.orientationFlip) {
+      this.applyOrientationFlip();
+    }
 
     // Apply timed effects
     if (effect.duration > 0) {
@@ -328,6 +336,56 @@ class PowerupSystem {
   // Apply blackhole powerup
   applyBlackhole() {
     this.createBlackhole();
+  }
+
+  // Apply orientation flip effect
+  applyOrientationFlip() {
+    // If flip is already active, cancel the existing timer
+    if (this.orientationFlipActive && this.orientationFlipTimer) {
+      clearTimeout(this.orientationFlipTimer);
+      this.orientationFlipTimer = null;
+    }
+
+    // If no flip is active, store the original orientation and flip
+    if (!this.orientationFlipActive) {
+      this.originalOrientation = CONFIG.ORIENTATION;
+      this.orientationFlipActive = true;
+
+      // Flip orientation
+      const newOrientation = CONFIG.isHorizontal() ? "vertical" : "horizontal";
+      CONFIG.setOrientation(newOrientation);
+
+      // Emit orientation change event for game to handle repositioning
+      eventBus.emit("game:orientationChanged", {
+        newOrientation,
+        originalOrientation: this.originalOrientation,
+      });
+    } else {
+      // If flip is already active, immediately flip again (toggle back and forth)
+      const currentOrientation = CONFIG.ORIENTATION;
+      const newOrientation = CONFIG.isHorizontal() ? "vertical" : "horizontal";
+      CONFIG.setOrientation(newOrientation);
+
+      // Emit orientation change event
+      eventBus.emit("game:orientationChanged", {
+        newOrientation,
+        originalOrientation: currentOrientation,
+      });
+    }
+
+    // Set a new timer to revert back to original orientation after duration
+    this.orientationFlipTimer = setTimeout(() => {
+      CONFIG.setOrientation(this.originalOrientation);
+      eventBus.emit("game:orientationChanged", {
+        newOrientation: this.originalOrientation,
+        originalOrientation: CONFIG.ORIENTATION,
+      });
+
+      // Reset flip state
+      this.orientationFlipActive = false;
+      this.orientationFlipTimer = null;
+      this.originalOrientation = null;
+    }, POWERUP_CONFIG.orientation_flip.effect.duration);
   }
 
   // Create a blackhole at random position
@@ -644,6 +702,14 @@ class PowerupSystem {
     this.randomWalls = [];
     this.portals = [];
     this.blackholes = [];
+
+    // Clear orientation flip state
+    if (this.orientationFlipTimer) {
+      clearTimeout(this.orientationFlipTimer);
+      this.orientationFlipTimer = null;
+    }
+    this.orientationFlipActive = false;
+    this.originalOrientation = null;
   }
 }
 

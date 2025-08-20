@@ -1,5 +1,8 @@
 // Game Configuration
 export const CONFIG = {
+  // Game Orientation - 'horizontal' (default) or 'vertical'
+  ORIENTATION: "horizontal",
+
   // Canvas - Will be set dynamically
   CANVAS_WIDTH: 800,
   CANVAS_HEIGHT: 600,
@@ -85,5 +88,57 @@ export const CONFIG = {
     CONFIG.CANVAS_HEIGHT = availableHeight;
 
     return { width: availableWidth, height: availableHeight };
+  },
+
+  // Orientation helpers
+  isVertical() {
+    return CONFIG.ORIENTATION === "vertical";
+  },
+
+  isHorizontal() {
+    return CONFIG.ORIENTATION === "horizontal";
+  },
+
+  setOrientation(orientation) {
+    CONFIG.ORIENTATION = orientation;
+  },
+
+  // Get paddle dimensions based on orientation
+  getPaddleWidth() {
+    return CONFIG.isVertical() ? CONFIG.PADDLE_HEIGHT : CONFIG.PADDLE_WIDTH;
+  },
+
+  getPaddleHeight() {
+    return CONFIG.isVertical() ? CONFIG.PADDLE_WIDTH : CONFIG.PADDLE_HEIGHT;
+  },
+
+  // Get paddle positions for each side based on orientation
+  getLeftPaddlePosition() {
+    if (CONFIG.isVertical()) {
+      return {
+        x: CONFIG.CANVAS_WIDTH / 2 - CONFIG.getPaddleWidth() / 2,
+        y: CONFIG.PADDLE_MARGIN,
+      };
+    }
+    return {
+      x: CONFIG.PADDLE_MARGIN,
+      y: CONFIG.CANVAS_HEIGHT / 2 - CONFIG.getPaddleHeight() / 2,
+    };
+  },
+
+  getRightPaddlePosition() {
+    if (CONFIG.isVertical()) {
+      return {
+        x: CONFIG.CANVAS_WIDTH / 2 - CONFIG.getPaddleWidth() / 2,
+        y:
+          CONFIG.CANVAS_HEIGHT -
+          CONFIG.PADDLE_MARGIN -
+          CONFIG.getPaddleHeight(),
+      };
+    }
+    return {
+      x: CONFIG.CANVAS_WIDTH - CONFIG.PADDLE_MARGIN - CONFIG.getPaddleWidth(),
+      y: CONFIG.CANVAS_HEIGHT / 2 - CONFIG.getPaddleHeight() / 2,
+    };
   },
 };

@@ -18,23 +18,36 @@
       <div id="menuScreen" class="screen active">
         <h1>RETRO PONG</h1>
         <div class="menu-content">
-          <!-- Horizontal Paddle Controls -->
+          <!-- Game Orientation Selection -->
+          <div class="orientation-selection">
+            <h3>Game Orientation:</h3>
+            <select id="gameOrientation">
+              <option value="horizontal">Horizontal (Left/Right)</option>
+              <option value="vertical">Vertical (Top/Bottom)</option>
+            </select>
+          </div>
+
+          <!-- Paddle Controls -->
           <div class="paddle-controls">
             <div class="paddle-selection">
-              <h3>Left Paddle:</h3>
+              <h3 id="leftPaddleLabel">Left Paddle:</h3>
               <select id="leftPaddleMode">
                 <option value="ai">AI</option>
                 <option value="mouse">Mouse</option>
-                <option value="keyboard">Keyboard (W/S)</option>
+                <option value="keyboard" id="leftKeyboardOption">
+                  Keyboard (W/S)
+                </option>
               </select>
             </div>
 
             <div class="paddle-selection">
-              <h3>Right Paddle:</h3>
+              <h3 id="rightPaddleLabel">Right Paddle:</h3>
               <select id="rightPaddleMode">
                 <option value="ai">AI</option>
                 <option value="mouse">Mouse</option>
-                <option value="keyboard">Keyboard (Up/Down)</option>
+                <option value="keyboard" id="rightKeyboardOption">
+                  Keyboard (Up/Down)
+                </option>
               </select>
             </div>
           </div>

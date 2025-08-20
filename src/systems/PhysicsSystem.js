@@ -66,6 +66,8 @@ class PhysicsSystem {
 
   // Individual ball-wall collision check
   checkBallWallCollision(ball, wall) {
+    if (!wall.active) return;
+
     // Broad-phase AABB check between circle (as AABB) and rect
     const overlaps =
       ball.x + ball.radius > wall.x &&
@@ -115,54 +117,9 @@ class PhysicsSystem {
   checkPortalCollisions(balls, portals) {
     balls.forEach((ball) => {
       portals.forEach((portalPair) => {
-        this.checkBallPortalCollision(ball, portalPair);
+        portalPair.checkBallCollision(ball);
       });
     });
-  }
-
-  // Individual ball-portal collision check
-  checkBallPortalCollision(ball, portalPair) {
-    // Skip if ball is in cooldown
-    if (ball.portalCooldown > 0) return;
-
-    const { portal1, portal2 } = portalPair;
-
-    // Check collision with portal1
-    const dist1 = Math.sqrt(
-      Math.pow(ball.x - portal1.x, 2) + Math.pow(ball.y - portal1.y, 2)
-    );
-
-    if (dist1 < ball.radius + portal1.radius) {
-      // Teleport to portal2
-      ball.x = portal2.x;
-      ball.y = portal2.y;
-      ball.portalCooldown = 500; // 500ms cooldown
-
-      eventBus.emit("ball:portalTeleport", {
-        ball,
-        fromPortal: portal1,
-        toPortal: portal2,
-      });
-      return;
-    }
-
-    // Check collision with portal2
-    const dist2 = Math.sqrt(
-      Math.pow(ball.x - portal2.x, 2) + Math.pow(ball.y - portal2.y, 2)
-    );
-
-    if (dist2 < ball.radius + portal2.radius) {
-      // Teleport to portal1
-      ball.x = portal1.x;
-      ball.y = portal1.y;
-      ball.portalCooldown = 500; // 500ms cooldown
-
-      eventBus.emit("ball:portalTeleport", {
-        ball,
-        fromPortal: portal2,
-        toPortal: portal1,
-      });
-    }
   }
 
   // Filter out off-screen balls (modifies array in-place)

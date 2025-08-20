@@ -142,6 +142,13 @@ class RenderSystem {
     });
   }
 
+  // Render blackholes
+  renderBlackholes(blackholes) {
+    blackholes.forEach((blackhole) => {
+      blackhole.render(this.ctx);
+    });
+  }
+
   // Render powerups
   renderPowerups(powerups) {
     powerups.forEach((powerup) => {
@@ -153,9 +160,8 @@ class RenderSystem {
   renderWalls(walls) {
     if (!walls || walls.length === 0) return;
 
-    this.ctx.fillStyle = CONFIG.COLORS.WALL;
     walls.forEach((wall) => {
-      this.ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+      wall.render(this.ctx);
     });
   }
 
@@ -163,89 +169,9 @@ class RenderSystem {
   renderPortals(portals) {
     if (!portals || portals.length === 0) return;
 
-    portals.forEach((pair) => {
-      const { portal1, portal2 } = pair;
-
-      // Draw connecting line between portals
-      this.ctx.strokeStyle = "#00ffff";
-      this.ctx.lineWidth = 3;
-      this.ctx.setLineDash([10, 5]);
-      this.ctx.beginPath();
-      this.ctx.moveTo(portal1.x, portal1.y);
-      this.ctx.lineTo(portal2.x, portal2.y);
-      this.ctx.stroke();
-      this.ctx.setLineDash([]);
-
-      // Draw portal1 (blue) with spiral effect
-      this.renderPortalWithSpiral(portal1, "#0066ff", "#00ccff");
-
-      // Draw portal2 (purple) with spiral effect
-      this.renderPortalWithSpiral(portal2, "#9900ff", "#cc66ff");
+    portals.forEach((portalPair) => {
+      portalPair.render(this.ctx);
     });
-  }
-
-  // Render individual portal with spiral effect
-  renderPortalWithSpiral(portal, primaryColor, secondaryColor) {
-    const time = Date.now() * 0.005;
-    const pulse = Math.sin(time * 0.5) * 0.1 + 1;
-
-    // Draw main portal circle with pulsing effect
-    this.ctx.fillStyle = primaryColor;
-    this.ctx.beginPath();
-    this.ctx.arc(portal.x, portal.y, portal.radius * pulse, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    // Draw outer glow ring
-    this.ctx.strokeStyle = secondaryColor;
-    this.ctx.lineWidth = 3;
-    this.ctx.beginPath();
-    this.ctx.arc(portal.x, portal.y, portal.radius - 2, 0, Math.PI * 2);
-    this.ctx.stroke();
-
-    // Draw inner ring
-    this.ctx.strokeStyle = "#ffffff";
-    this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.arc(portal.x, portal.y, portal.radius - 8, 0, Math.PI * 2);
-    this.ctx.stroke();
-
-    // Draw spiral effect
-    this.ctx.strokeStyle = "#ffffff";
-    this.ctx.lineWidth = 1.5;
-
-    for (let arm = 0; arm < 3; arm++) {
-      const armOffset = (arm * Math.PI * 2) / 3;
-
-      this.ctx.beginPath();
-      for (let i = 0; i <= 20; i++) {
-        const angle = time + armOffset + i * 0.3 + i * 0.1;
-        const radius = (portal.radius - 15) * (1 - i / 20);
-
-        if (radius > 0) {
-          const x = portal.x + Math.cos(angle) * radius;
-          const y = portal.y + Math.sin(angle) * radius;
-
-          if (i === 0) {
-            this.ctx.moveTo(x, y);
-          } else {
-            this.ctx.lineTo(x, y);
-          }
-        }
-      }
-      this.ctx.stroke();
-    }
-
-    // Draw center core
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.beginPath();
-    this.ctx.arc(portal.x, portal.y, 6, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    // Draw inner core glow
-    this.ctx.fillStyle = secondaryColor;
-    this.ctx.beginPath();
-    this.ctx.arc(portal.x, portal.y, 3, 0, Math.PI * 2);
-    this.ctx.fill();
   }
 
   // Render particles
@@ -284,6 +210,7 @@ class RenderSystem {
     // Render game objects in order (back to front)
     this.renderWalls(gameState.randomWalls);
     this.renderPortals(gameState.portals);
+    this.renderBlackholes(gameState.blackholes || []);
     this.renderPowerups(gameState.powerups || []);
     this.renderPaddles([gameState.leftPaddle, gameState.rightPaddle]);
     this.renderBalls(gameState.balls);

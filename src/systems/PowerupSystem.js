@@ -1,6 +1,9 @@
 import { CONFIG } from "../config/game.js";
 import { POWERUP_CONFIG } from "../config/powerups.js";
 import Powerup from "../entities/Powerup.js";
+import Blackhole from "../entities/Blackhole.js";
+import Wall from "../entities/Wall.js";
+import { PortalPair } from "../entities/Portal.js";
 import eventBus from "../core/EventBus.js";
 import {
   lightenColor,
@@ -17,6 +20,7 @@ class PowerupSystem {
     this.activeEffects = new Map();
     this.randomWalls = [];
     this.portals = [];
+    this.blackholes = [];
 
     this.setupEventListeners();
   }
@@ -161,6 +165,9 @@ class PowerupSystem {
     if (effect.swapScore) {
       this.applySwapScore();
     }
+    if (effect.blackhole) {
+      this.applyBlackhole();
+    }
 
     // Apply timed effects
     if (effect.duration > 0) {
@@ -205,43 +212,50 @@ class PowerupSystem {
 
   // Create a portal pair
   createPortalPair() {
-    const portal1 = {
+    const portal1Config = {
       x: 50 + Math.random() * (CONFIG.CANVAS_WIDTH - 200),
       y: 50 + Math.random() * (CONFIG.CANVAS_HEIGHT - 200),
       radius: 25,
-      id: generateId("portal"),
     };
 
-    const portal2 = {
+    const portal2Config = {
       x: 50 + Math.random() * (CONFIG.CANVAS_WIDTH - 200),
       y: 50 + Math.random() * (CONFIG.CANVAS_HEIGHT - 200),
       radius: 25,
-      id: generateId("portal"),
     };
 
     // Ensure portals are not too close to each other
     const minDistance = 150;
-    const dist = distance(portal1.x, portal1.y, portal2.x, portal2.y);
+    const dist = distance(
+      portal1Config.x,
+      portal1Config.y,
+      portal2Config.x,
+      portal2Config.y
+    );
 
     if (dist < minDistance) {
-      const angle = Math.atan2(portal2.y - portal1.y, portal2.x - portal1.x);
-      portal2.x = portal1.x + Math.cos(angle) * minDistance;
-      portal2.y = portal1.y + Math.sin(angle) * minDistance;
+      const angle = Math.atan2(
+        portal2Config.y - portal1Config.y,
+        portal2Config.x - portal1Config.x
+      );
+      portal2Config.x = portal1Config.x + Math.cos(angle) * minDistance;
+      portal2Config.y = portal1Config.y + Math.sin(angle) * minDistance;
 
       // Keep within canvas bounds
-      portal2.x = Math.max(50, Math.min(CONFIG.CANVAS_WIDTH - 50, portal2.x));
-      portal2.y = Math.max(50, Math.min(CONFIG.CANVAS_HEIGHT - 50, portal2.y));
+      portal2Config.x = Math.max(
+        50,
+        Math.min(CONFIG.CANVAS_WIDTH - 50, portal2Config.x)
+      );
+      portal2Config.y = Math.max(
+        50,
+        Math.min(CONFIG.CANVAS_HEIGHT - 50, portal2Config.y)
+      );
     }
 
-    const portalPair = {
-      portal1,
-      portal2,
-      created: Date.now(),
-    };
-
+    const portalPair = new PortalPair(portal1Config, portal2Config, 10000);
     this.portals.push(portalPair);
 
-    // Remove portal pair after 10 seconds
+    // Remove portal pair when it expires
     setTimeout(() => {
       const index = this.portals.findIndex(
         (pair) => pair.created === portalPair.created
@@ -252,21 +266,17 @@ class PowerupSystem {
 
   // Apply random wall
   applyRandomWall() {
-    const wall = {
-      x: Math.random() * (CONFIG.CANVAS_WIDTH - 100),
-      y: Math.random() * (CONFIG.CANVAS_HEIGHT - 100),
-      width: 10 + Math.random() * 30,
-      height: 50 + Math.random() * 100,
-      created: Date.now(),
-    };
+    const x = Math.random() * (CONFIG.CANVAS_WIDTH - 100);
+    const y = Math.random() * (CONFIG.CANVAS_HEIGHT - 100);
+    const width = 10 + Math.random() * 30;
+    const height = 50 + Math.random() * 100;
 
+    const wall = new Wall(x, y, width, height, { lifetime: 5000 });
     this.randomWalls.push(wall);
 
-    // Remove wall after 5 seconds
+    // Remove wall when it expires
     setTimeout(() => {
-      const index = this.randomWalls.findIndex(
-        (w) => w.created === wall.created
-      );
+      const index = this.randomWalls.findIndex((w) => w.id === wall.id);
       if (index > -1) this.randomWalls.splice(index, 1);
     }, 5000);
   }
@@ -289,6 +299,34 @@ class PowerupSystem {
   // Apply swap score powerup
   applySwapScore() {
     eventBus.emit("game:swapScores", {});
+  }
+
+  // Apply blackhole powerup
+  applyBlackhole() {
+    this.createBlackhole();
+  }
+
+  // Create a blackhole at random position
+  createBlackhole() {
+    // Find a good position away from paddles and center
+    const padding = CONFIG.BLACKHOLE.RADIUS + 50;
+    const x = padding + Math.random() * (CONFIG.CANVAS_WIDTH - 2 * padding);
+    const y = padding + Math.random() * (CONFIG.CANVAS_HEIGHT - 2 * padding);
+
+    const blackhole = new Blackhole(x, y, {
+      radius: CONFIG.BLACKHOLE.RADIUS,
+      attractionRadius: CONFIG.BLACKHOLE.ATTRACTION_RADIUS,
+      attractionForce: CONFIG.BLACKHOLE.ATTRACTION_FORCE,
+      lifetime: CONFIG.BLACKHOLE.LIFETIME,
+    });
+
+    this.blackholes.push(blackhole);
+
+    // Remove blackhole when it expires
+    setTimeout(() => {
+      const index = this.blackholes.findIndex((bh) => bh.id === blackhole.id);
+      if (index > -1) this.blackholes.splice(index, 1);
+    }, CONFIG.BLACKHOLE.LIFETIME);
   }
 
   // Generate flash text colors from powerup configuration
@@ -393,6 +431,10 @@ class PowerupSystem {
         message = "RANDOM DIR!";
         break;
 
+      case "blackhole":
+        message = "BLACKHOLE!";
+        break;
+
       default:
         // For other powerups, show the label
         if (config.label && config.label !== "undefined") {
@@ -491,10 +533,56 @@ class PowerupSystem {
     });
   }
 
+  // Update blackholes
+  updateBlackholes(balls) {
+    // Update each blackhole
+    this.blackholes.forEach((blackhole, index) => {
+      blackhole.update();
+
+      // Apply gravity to all balls
+      balls.forEach((ball) => {
+        blackhole.applyGravityToBall(ball);
+
+        // Check if ball is consumed
+        if (blackhole.checkBallConsumption(ball)) {
+          ball.disabled = true;
+        }
+      });
+
+      // Remove expired blackholes
+      if (blackhole.shouldDestroy()) {
+        this.blackholes.splice(index, 1);
+      }
+    });
+  }
+
+  // Update walls
+  updateWalls() {
+    this.randomWalls.forEach((wall, index) => {
+      wall.update();
+      if (wall.shouldDestroy()) {
+        this.randomWalls.splice(index, 1);
+      }
+    });
+  }
+
+  // Update portals
+  updatePortals() {
+    this.portals.forEach((portalPair, index) => {
+      portalPair.update();
+      if (portalPair.shouldDestroy()) {
+        this.portals.splice(index, 1);
+      }
+    });
+  }
+
   // Update system
-  update() {
+  update(balls = []) {
     this.spawnPowerup();
     this.cleanupExpiredEffects();
+    this.updateBlackholes(balls);
+    this.updateWalls();
+    this.updatePortals();
   }
 
   // Get all powerups
@@ -512,12 +600,18 @@ class PowerupSystem {
     return this.portals;
   }
 
+  // Get blackholes
+  getBlackholes() {
+    return this.blackholes;
+  }
+
   // Clear all powerups and effects
   clear() {
     this.powerups = [];
     this.activeEffects.clear();
     this.randomWalls = [];
     this.portals = [];
+    this.blackholes = [];
   }
 }
 

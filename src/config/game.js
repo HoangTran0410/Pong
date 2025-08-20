@@ -43,6 +43,14 @@ export const CONFIG = {
   POWERUP_DURATION: 10000, // 10 seconds
   MAX_POWERUPS_ON_SCREEN: 3,
 
+  // Blackhole Physics
+  BLACKHOLE: {
+    RADIUS: 30,
+    ATTRACTION_RADIUS: 150,
+    ATTRACTION_FORCE: 0.2,
+    LIFETIME: 15000, // 15 seconds
+  },
+
   // Colors
   COLORS: {
     PADDLE: "#00ff00",

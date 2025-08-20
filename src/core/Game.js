@@ -304,7 +304,7 @@ class Game {
 
     // Update systems
     this.physicsSystem.update(gameState, inputState);
-    this.powerupSystem.update();
+    this.powerupSystem.update(this.balls);
 
     // Check powerup collisions
     this.powerupSystem.checkCollisions(this.balls);
@@ -332,6 +332,7 @@ class Game {
       powerups: this.powerupSystem.getPowerups(),
       randomWalls: this.powerupSystem.getRandomWalls(),
       portals: this.powerupSystem.getPortals(),
+      blackholes: this.powerupSystem.getBlackholes(),
       flashTexts: this.flashTextSystem.getFlashTexts(),
     };
 

@@ -6,6 +6,7 @@ export const POWERUP_CONFIG = {
     effect: { paddleHeight: 1.5, duration: 8000 },
     color: "#00ff00", // Green - Good effect
     category: "beneficial",
+    lifetime: 12000, // 12 seconds - longer for beneficial
   },
   smaller_paddle: {
     emoji: "⬇️",
@@ -13,6 +14,7 @@ export const POWERUP_CONFIG = {
     effect: { paddleHeight: 0.7, duration: 8000 },
     color: "#ff4444", // Red - Bad effect
     category: "detrimental",
+    lifetime: 8000, // 8 seconds - shorter for detrimental
   },
   bigger_ball: {
     emoji: "🔵",
@@ -34,6 +36,7 @@ export const POWERUP_CONFIG = {
     effect: { ballSpeed: 1.3, duration: 6000 },
     color: "#ff2222", // Red - Bad effect (harder to react)
     category: "detrimental",
+    lifetime: 8000, // 8 seconds
   },
   speed_down: {
     emoji: "🐢",
@@ -41,6 +44,7 @@ export const POWERUP_CONFIG = {
     effect: { ballSpeed: 0.7, duration: 6000 },
     color: "#22ff22", // Green - Good effect (easier to hit)
     category: "beneficial",
+    lifetime: 12000, // 12 seconds
   },
   random_direction: {
     emoji: "🎲",
@@ -76,6 +80,7 @@ export const POWERUP_CONFIG = {
     effect: { portal: true, duration: 0 },
     color: "#00aaff", // Cyan blue - Strategic advantage
     category: "chaotic",
+    lifetime: 10000, // 10 seconds - medium for chaotic
   },
   random_wall: {
     emoji: "🧱",
@@ -104,12 +109,13 @@ export const POWERUP_CONFIG = {
     effect: { blackhole: true, duration: 0 },
     color: "#8844ff", // Dark purple - Chaotic gravitational effect
     category: "chaotic",
+    lifetime: 10000, // 10 seconds
   },
-  orientation_flip: {
-    emoji: "☝️",
-    label: "Orientation Flip",
-    effect: { orientationFlip: true, duration: 10000 }, // 10 seconds
-    color: "#ff9900", // Orange - Game-changing effect
-    category: "chaotic",
-  },
+  // orientation_flip: {
+  //   emoji: "☝️",
+  //   label: "Orientation Flip",
+  //   effect: { orientationFlip: true, duration: 10000 }, // 10 seconds
+  //   color: "#ff9900", // Orange - Game-changing effect
+  //   category: "chaotic",
+  // },
 };

@@ -17,6 +17,12 @@ class Powerup {
       label: type,
       effect: {},
     };
+
+    // Lifetime management
+    this.lifetime = this.config.lifetime || 15000; // 15 seconds default
+    this.maxLifetime = this.lifetime;
+    this.startTime = Date.now();
+    this.expired = false;
   }
 
   // Check if this powerup collides with a ball
@@ -32,6 +38,20 @@ class Powerup {
     return dist < ball.radius + CONFIG.POWERUP_SIZE / 2;
   }
 
+  // Update powerup state
+  update(deltaTime) {
+    // Check if powerup should expire
+    const age = Date.now() - this.startTime;
+    if (age >= this.lifetime) {
+      this.expired = true;
+    }
+  }
+
+  // Check if powerup should be destroyed
+  shouldDestroy() {
+    return this.collected || this.expired;
+  }
+
   // Mark powerup as collected
   collect() {
     this.collected = true;
@@ -39,13 +59,18 @@ class Powerup {
 
   // Render powerup with enhanced visual effects
   render(ctx) {
-    if (this.collected) return;
+    if (this.collected || this.expired) return;
 
     const centerX = this.x + CONFIG.POWERUP_SIZE / 2;
     const centerY = this.y + CONFIG.POWERUP_SIZE / 2;
     const radius = CONFIG.POWERUP_SIZE / 2;
     const time = Date.now() * 0.003;
     const powerupColor = this.config.color || CONFIG.COLORS.POWERUP;
+
+    // Calculate lifetime alpha and ratio
+    const age = Date.now() - this.startTime;
+    const lifetimeAlpha = Math.max(0.5, 1 - age / this.maxLifetime);
+    const lifetimeRatio = 1 - age / this.maxLifetime;
 
     ctx.save();
 
@@ -67,6 +92,7 @@ class Powerup {
       glowGradient.addColorStop(0.5, powerupColor + "40");
       glowGradient.addColorStop(1, powerupColor + "00");
 
+      ctx.globalAlpha = lifetimeAlpha * 0.8;
       ctx.fillStyle = glowGradient;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius * 2.5 * pulse, 0, Math.PI * 2);
@@ -77,6 +103,7 @@ class Powerup {
         const ringRadius = radius + 8 + i * 6;
         const rotation = time + i * Math.PI;
 
+        ctx.globalAlpha = lifetimeAlpha * (0.6 - i * 0.1);
         ctx.strokeStyle = powerupColor + "60";
         ctx.lineWidth = 2;
         ctx.setLineDash([4, 8]);
@@ -103,6 +130,7 @@ class Powerup {
       warningGradient.addColorStop(0.5, "#ff000040");
       warningGradient.addColorStop(1, "#ff000000");
 
+      ctx.globalAlpha = lifetimeAlpha * 0.8;
       ctx.fillStyle = warningGradient;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius * 2, 0, Math.PI * 2);
@@ -111,7 +139,7 @@ class Powerup {
       // Danger spikes
       ctx.strokeStyle = "#ff0000";
       ctx.lineWidth = 3;
-      ctx.globalAlpha = pulse;
+      ctx.globalAlpha = lifetimeAlpha * pulse;
 
       for (let i = 0; i < 6; i++) {
         const angle = (i / 6) * Math.PI * 2 + time;
@@ -148,6 +176,7 @@ class Powerup {
       chaosGradient.addColorStop(0.6, powerupColor + "40");
       chaosGradient.addColorStop(1, powerupColor + "00");
 
+      ctx.globalAlpha = lifetimeAlpha * 0.8;
       ctx.fillStyle = chaosGradient;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius * 2, 0, Math.PI * 2);
@@ -156,7 +185,7 @@ class Powerup {
       // Chaotic spiral
       ctx.strokeStyle = powerupColor;
       ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.6;
+      ctx.globalAlpha = lifetimeAlpha * 0.6;
 
       ctx.beginPath();
       for (let i = 0; i < 30; i++) {
@@ -185,6 +214,7 @@ class Powerup {
     bodyGradient.addColorStop(0.3, powerupColor);
     bodyGradient.addColorStop(1, powerupColor + "cc");
 
+    ctx.globalAlpha = lifetimeAlpha;
     ctx.fillStyle = bodyGradient;
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -193,15 +223,30 @@ class Powerup {
     // Border highlight
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.8;
+    ctx.globalAlpha = lifetimeAlpha * 0.8;
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
 
+    // Lifetime indicator (similar to Portal.js)
+    if (lifetimeRatio < 0.5) {
+      ctx.strokeStyle = lifetimeRatio < 0.2 ? "#ff4444" : "#ffaa44";
+      ctx.lineWidth = 3;
+      ctx.globalAlpha =
+        lifetimeRatio < 0.2
+          ? Math.sin(Date.now() * 0.01) * 0.5 + 0.5 // Pulsing warning for critical
+          : 0.8; // Steady warning for low
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 8, 0, Math.PI * 2 * lifetimeRatio);
+      ctx.stroke();
+    }
+
     ctx.restore();
 
     // Emoji icon
+    // ctx.globalAlpha = lifetimeAlpha;
     ctx.fillStyle = "#000";
     ctx.font = "14px 'Press Start 2P', monospace";
     ctx.textAlign = "center";
@@ -218,6 +263,7 @@ class Powerup {
         : this.config.category === "beneficial"
         ? "#ffffff"
         : "#ffff00";
+    ctx.globalAlpha = lifetimeAlpha;
     ctx.fillStyle = labelColor;
     ctx.font = "10px 'Press Start 2P', monospace";
     ctx.textAlign = "center";

@@ -133,7 +133,7 @@ class PowerupSystem {
     const collisions = [];
 
     this.powerups.forEach((powerup, index) => {
-      if (!powerup.collected) {
+      if (!powerup.collected && !powerup.expired) {
         balls.forEach((ball) => {
           if (powerup.checkCollision(ball)) {
             powerup.collect();
@@ -658,9 +658,21 @@ class PowerupSystem {
     });
   }
 
+  // Update powerups
+  updatePowerups() {
+    // Update each powerup and remove expired ones
+    this.powerups.forEach((powerup, index) => {
+      powerup.update();
+      if (powerup.shouldDestroy()) {
+        this.powerups.splice(index, 1);
+      }
+    });
+  }
+
   // Update system
   update(balls = []) {
     this.spawnPowerup();
+    this.updatePowerups();
     this.cleanupExpiredEffects();
     this.updateBlackholes(balls);
     this.updateWalls();

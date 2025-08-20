@@ -132,11 +132,6 @@ class Game {
       }, 100);
     });
 
-    // Handle window focus to ensure proper sizing
-    window.addEventListener("focus", () => {
-      this.resizeCanvas();
-    });
-
     // Handle orientation change for mobile devices
     window.addEventListener("orientationchange", () => {
       setTimeout(() => {

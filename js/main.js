@@ -106,13 +106,6 @@ class PongApp {
       }
     }
   }
-
-  // Reset game
-  resetGame() {
-    if (this.game) {
-      this.game.reset();
-    }
-  }
 }
 
 // Initialize app when DOM is loaded

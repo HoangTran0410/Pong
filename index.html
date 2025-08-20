@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retro Pong Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="gameContainer">
+      <!-- Menu Screen -->
+      <div id="menuScreen" class="screen active">
+        <h1>RETRO PONG</h1>
+        <div class="menu-content">
+          <div class="paddle-selection">
+            <h3>Left Paddle Mode:</h3>
+            <select id="leftPaddleMode">
+              <option value="keyboard">Keyboard (W/S)</option>
+              <option value="mouse">Mouse</option>
+              <option value="ai">AI</option>
+            </select>
+          </div>
+
+          <div class="paddle-selection">
+            <h3>Right Paddle Mode:</h3>
+            <select id="rightPaddleMode">
+              <option value="keyboard">Keyboard (Up/Down)</option>
+              <option value="mouse">Mouse</option>
+              <option value="ai">AI</option>
+            </select>
+          </div>
+
+          <button id="startButton" class="start-btn">START GAME</button>
+        </div>
+      </div>
+
+      <!-- Game Screen -->
+      <div id="gameScreen" class="screen">
+        <div class="game-header">
+          <div class="score left-score">0</div>
+          <div class="speed-indicator">Speed: 1</div>
+          <div class="score right-score">0</div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="game-controls">
+          <button id="pauseButton">PAUSE</button>
+          <button id="menuButton">MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

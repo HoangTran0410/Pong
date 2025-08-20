@@ -67,87 +67,180 @@ class Portal extends GameObject {
     return true;
   }
 
-  // Render portal with spiral effect
+  // Render portal with enhanced dimensional effects
   render(ctx) {
     if (!this.active) return;
 
     const time = Date.now() * this.rotationSpeed;
-    const pulse = Math.sin(time * 0.5) * 0.1 + 1;
+    const pulse = Math.sin(time * 0.5) * 0.15 + 1;
     const age = Date.now() - this.startTime;
     const lifetimeAlpha = Math.max(0.3, 1 - age / this.maxLifetime);
 
     ctx.save();
-    ctx.globalAlpha = lifetimeAlpha;
 
-    // Draw main portal circle with pulsing effect
-    ctx.fillStyle = this.primaryColor;
+    // Enhanced outer energy field
+    const outerGradient = ctx.createRadialGradient(
+      this.x,
+      this.y,
+      this.radius * 0.5,
+      this.x,
+      this.y,
+      this.radius * 3
+    );
+    outerGradient.addColorStop(0, this.primaryColor + "60");
+    outerGradient.addColorStop(0.5, this.primaryColor + "20");
+    outerGradient.addColorStop(1, this.primaryColor + "00");
+
+    ctx.globalAlpha = lifetimeAlpha * 0.8;
+    ctx.fillStyle = outerGradient;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius * 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dimensional distortion rings
+    for (let i = 0; i < 4; i++) {
+      const distortionRadius = this.radius + (15 + i * 8) * pulse;
+      const distortionTime = time * (1 + i * 0.3);
+
+      ctx.globalAlpha = (0.4 - i * 0.08) * lifetimeAlpha;
+      ctx.strokeStyle = this.secondaryColor;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 8]);
+      ctx.lineDashOffset = -distortionTime * 30;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, distortionRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Main portal with dimensional gradient
+    const portalGradient = ctx.createRadialGradient(
+      this.x,
+      this.y,
+      0,
+      this.x,
+      this.y,
+      this.radius * pulse
+    );
+    portalGradient.addColorStop(0, "#000000");
+    portalGradient.addColorStop(0.3, this.primaryColor + "aa");
+    portalGradient.addColorStop(0.7, this.primaryColor);
+    portalGradient.addColorStop(1, this.secondaryColor);
+
+    ctx.globalAlpha = lifetimeAlpha;
+    ctx.fillStyle = portalGradient;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius * pulse, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw outer glow ring
+    // Enhanced outer glow ring with energy effect
+    const glowPulse = Math.sin(time * 2) * 0.3 + 0.7;
     ctx.strokeStyle = this.secondaryColor;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = lifetimeAlpha * glowPulse;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius - 2, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Draw inner ring
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius - 8, 0, Math.PI * 2);
-    ctx.stroke();
+    // Multiple inner energy rings
+    for (let i = 0; i < 3; i++) {
+      const ringRadius = this.radius - 5 - i * 4;
+      const ringPulse = Math.sin(time * (2 + i)) * 0.2 + 0.8;
 
-    // Draw spiral effect
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.3 * lifetimeAlpha;
-
-    for (let arm = 0; arm < 3; arm++) {
-      const armOffset = (arm * Math.PI * 2) / 3;
-
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2 - i * 0.5;
+      ctx.globalAlpha = lifetimeAlpha * ringPulse * (0.8 - i * 0.2);
       ctx.beginPath();
-      for (let i = 0; i <= 20; i++) {
-        const angle = time + armOffset + i * 0.3 + i * 0.1;
-        const radius = (this.radius - 15) * (1 - i / 20);
-
-        if (radius > 0) {
-          const x = this.x + Math.cos(angle) * radius;
-          const y = this.y + Math.sin(angle) * radius;
-
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-      }
+      ctx.arc(this.x, this.y, ringRadius, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // Draw center core
+    // Enhanced spiral effect with multiple layers
+    ctx.strokeStyle = "#ffffff";
+    ctx.globalAlpha = 0.6 * lifetimeAlpha;
+
+    for (let layer = 0; layer < 2; layer++) {
+      ctx.lineWidth = 2 - layer * 0.5;
+
+      for (let arm = 0; arm < 4; arm++) {
+        const armOffset = (arm * Math.PI * 2) / 4 + (layer * Math.PI) / 4;
+
+        ctx.beginPath();
+        for (let i = 0; i <= 25; i++) {
+          const spiralTime = time * (1 + layer * 0.5);
+          const angle = spiralTime + armOffset + i * 0.25;
+          const radius = (this.radius - 8 - layer * 3) * (1 - i / 25);
+
+          if (radius > 0) {
+            // Add dimensional wave distortion
+            const distortion = Math.sin(angle * 3 + spiralTime) * 2;
+            const finalRadius = radius + distortion;
+            const x = this.x + Math.cos(angle) * finalRadius;
+            const y = this.y + Math.sin(angle) * finalRadius;
+
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+        }
+        ctx.stroke();
+      }
+    }
+
+    // Enhanced center void with dimensional effects
+    const voidGradient = ctx.createRadialGradient(
+      this.x,
+      this.y,
+      0,
+      this.x,
+      this.y,
+      8
+    );
+    voidGradient.addColorStop(0, "#000000");
+    voidGradient.addColorStop(0.7, this.primaryColor + "80");
+    voidGradient.addColorStop(1, "#ffffff");
+
     ctx.globalAlpha = lifetimeAlpha;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = voidGradient;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, 8 * pulse, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw inner core glow
-    ctx.fillStyle = this.secondaryColor;
+    // Core energy point
+    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = lifetimeAlpha * glowPulse;
     ctx.beginPath();
     ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw lifetime warning
+    // Enhanced lifetime warning
     const lifetimeRatio = 1 - age / this.maxLifetime;
     if (lifetimeRatio < 0.3) {
-      ctx.strokeStyle = "#ff4444";
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = Math.sin(Date.now() * 0.01) * 0.5 + 0.5;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2 * lifetimeRatio);
-      ctx.stroke();
+      const warningPulse = Math.sin(Date.now() * 0.015) * 0.5 + 0.5;
+
+      // Unstable energy discharge
+      for (let i = 0; i < 6; i++) {
+        const dischargeAngle = (i / 6) * Math.PI * 2 + time;
+        const dischargeLength = (15 + Math.random() * 10) * warningPulse;
+
+        ctx.strokeStyle = "#ff4444";
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = warningPulse * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(
+          this.x + Math.cos(dischargeAngle) * (this.radius + 5),
+          this.y + Math.sin(dischargeAngle) * (this.radius + 5)
+        );
+        ctx.lineTo(
+          this.x +
+            Math.cos(dischargeAngle) * (this.radius + 5 + dischargeLength),
+          this.y +
+            Math.sin(dischargeAngle) * (this.radius + 5 + dischargeLength)
+        );
+        ctx.stroke();
+      }
     }
 
     ctx.restore();

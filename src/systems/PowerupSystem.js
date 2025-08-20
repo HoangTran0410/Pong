@@ -22,6 +22,12 @@ class PowerupSystem {
     this.portals = [];
     this.blackholes = [];
 
+    // Powerup settings
+    this.powerupSettings = {
+      powerupsEnabled: true,
+      enabledPowerups: Object.keys(POWERUP_CONFIG),
+    };
+
     this.setupEventListeners();
   }
 
@@ -52,10 +58,21 @@ class PowerupSystem {
 
   // Spawn a new powerup
   spawnPowerup() {
+    // Don't spawn if powerups are disabled or no powerups are enabled
+    if (
+      !this.powerupSettings.powerupsEnabled ||
+      this.powerupSettings.enabledPowerups.length === 0
+    ) {
+      return;
+    }
+
     if (this.powerups.length >= CONFIG.MAX_POWERUPS_ON_SCREEN) return;
 
     if (Math.random() < CONFIG.POWERUP_SPAWN_RATE) {
       const type = this.getRandomPowerupType();
+
+      // Don't spawn if no powerup type is available
+      if (!type) return;
 
       // Spawn powerups closer to the center
       const centerX = CONFIG.CANVAS_WIDTH / 2;
@@ -93,10 +110,17 @@ class PowerupSystem {
     }
   }
 
-  // Get random powerup type
+  // Get random powerup type from enabled powerups
   getRandomPowerupType() {
-    const types = Object.keys(POWERUP_CONFIG);
-    return randomChoice(types);
+    const enabledTypes = this.powerupSettings.enabledPowerups.filter(
+      (type) => POWERUP_CONFIG[type] // Ensure the powerup type still exists in config
+    );
+
+    if (enabledTypes.length === 0) {
+      return null;
+    }
+
+    return randomChoice(enabledTypes);
   }
 
   // Check powerup collisions with balls
@@ -603,6 +627,14 @@ class PowerupSystem {
   // Get blackholes
   getBlackholes() {
     return this.blackholes;
+  }
+
+  // Set powerup settings
+  setPowerupSettings(settings) {
+    this.powerupSettings = {
+      powerupsEnabled: settings.powerupsEnabled !== false,
+      enabledPowerups: settings.enabledPowerups || Object.keys(POWERUP_CONFIG),
+    };
   }
 
   // Clear all powerups and effects

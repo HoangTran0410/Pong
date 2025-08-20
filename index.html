@@ -18,22 +18,49 @@
       <div id="menuScreen" class="screen active">
         <h1>RETRO PONG</h1>
         <div class="menu-content">
-          <div class="paddle-selection">
-            <h3>Left Paddle Mode:</h3>
-            <select id="leftPaddleMode">
-              <option value="ai">AI</option>
-              <option value="mouse">Mouse</option>
-              <option value="keyboard">Keyboard (W/S)</option>
-            </select>
+          <!-- Horizontal Paddle Controls -->
+          <div class="paddle-controls">
+            <div class="paddle-selection">
+              <h3>Left Paddle:</h3>
+              <select id="leftPaddleMode">
+                <option value="ai">AI</option>
+                <option value="mouse">Mouse</option>
+                <option value="keyboard">Keyboard (W/S)</option>
+              </select>
+            </div>
+
+            <div class="paddle-selection">
+              <h3>Right Paddle:</h3>
+              <select id="rightPaddleMode">
+                <option value="ai">AI</option>
+                <option value="mouse">Mouse</option>
+                <option value="keyboard">Keyboard (Up/Down)</option>
+              </select>
+            </div>
           </div>
 
-          <div class="paddle-selection">
-            <h3>Right Paddle Mode:</h3>
-            <select id="rightPaddleMode">
-              <option value="ai">AI</option>
-              <option value="mouse">Mouse</option>
-              <option value="keyboard">Keyboard (Up/Down)</option>
-            </select>
+          <!-- Collapsible Powerup Configuration -->
+          <div class="powerup-config" id="powerupConfig">
+            <div class="powerup-config-header" id="powerupConfigHeader">
+              <h3>Powerup Settings</h3>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div class="powerup-controls">
+              <div class="powerup-header">
+                <label class="powerup-toggle">
+                  <input type="checkbox" id="powerupsEnabled" checked />
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Enable Powerups</span>
+                </label>
+                <button id="toggleAllPowerups" class="toggle-all-btn">
+                  All
+                </button>
+              </div>
+
+              <div id="powerupList" class="powerup-list">
+                <!-- Powerup toggles will be generated here -->
+              </div>
+            </div>
           </div>
 
           <button id="startButton" class="start-btn">START GAME</button>

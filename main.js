@@ -1,16 +1,21 @@
 import Game from "./src/core/Game.js";
+import PowerupUI from "./src/ui/PowerupUI.js";
 
 // Main Application Entry Point
 class PongApp {
   constructor() {
     this.game = null;
     this.currentScreen = "menu";
+    this.powerupUI = null;
 
     this.init();
   }
 
   // Initialize application
   init() {
+    // Initialize PowerupUI
+    this.powerupUI = new PowerupUI();
+
     this.setupEventListeners();
     this.showScreen("menu");
   }
@@ -51,6 +56,9 @@ class PongApp {
     const leftMode = document.getElementById("leftPaddleMode").value;
     const rightMode = document.getElementById("rightPaddleMode").value;
 
+    // Get powerup settings
+    const powerupSettings = this.powerupUI.getSettings();
+
     // Switch to game screen
     this.showScreen("game");
 
@@ -60,6 +68,9 @@ class PongApp {
 
     // Set paddle modes
     this.game.setPaddleModes(leftMode, rightMode);
+
+    // Set powerup settings
+    this.game.setPowerupSettings(powerupSettings);
 
     // Start game
     this.game.start();

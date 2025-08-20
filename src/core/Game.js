@@ -473,6 +473,23 @@ class Game {
       rightScore: this.rightScore,
     };
   }
+
+  // Set paddle modes
+  setPaddleModes(leftMode, rightMode) {
+    if (this.leftPaddle) {
+      this.leftPaddle.mode = leftMode;
+    }
+    if (this.rightPaddle) {
+      this.rightPaddle.mode = rightMode;
+    }
+  }
+
+  // Set powerup settings
+  setPowerupSettings(settings) {
+    if (this.powerupSystem) {
+      this.powerupSystem.setPowerupSettings(settings);
+    }
+  }
 }
 
 export default Game;

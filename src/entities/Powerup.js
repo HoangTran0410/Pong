@@ -37,58 +37,169 @@ class Powerup {
     this.collected = true;
   }
 
-  // Render powerup
+  // Render powerup with enhanced visual effects
   render(ctx) {
     if (this.collected) return;
 
-    // Use powerup-specific color or fallback to default
+    const centerX = this.x + CONFIG.POWERUP_SIZE / 2;
+    const centerY = this.y + CONFIG.POWERUP_SIZE / 2;
+    const radius = CONFIG.POWERUP_SIZE / 2;
+    const time = Date.now() * 0.003;
     const powerupColor = this.config.color || CONFIG.COLORS.POWERUP;
 
-    // Body with category-based visual effects
-    ctx.fillStyle = powerupColor;
-    ctx.beginPath();
-    ctx.arc(
-      this.x + CONFIG.POWERUP_SIZE / 2,
-      this.y + CONFIG.POWERUP_SIZE / 2,
-      CONFIG.POWERUP_SIZE / 2,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
+    ctx.save();
 
-    // Add glow effect for beneficial powerups
+    // Enhanced category-based visual effects
     if (this.config.category === "beneficial") {
-      ctx.shadowColor = powerupColor;
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(
-        this.x + CONFIG.POWERUP_SIZE / 2,
-        this.y + CONFIG.POWERUP_SIZE / 2,
-        CONFIG.POWERUP_SIZE / 2,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
+      // Beneficial powerups: bright glow with pulsing energy
+      const pulse = Math.sin(time * 2) * 0.3 + 0.7;
 
-    // Add warning pulse for detrimental powerups
-    if (this.config.category === "detrimental") {
-      const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
-      ctx.strokeStyle = "#ff0000";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(
-        this.x + CONFIG.POWERUP_SIZE / 2,
-        this.y + CONFIG.POWERUP_SIZE / 2,
-        CONFIG.POWERUP_SIZE / 2 + 3,
-        0,
-        Math.PI * 2
+      // Outer glow
+      const glowGradient = ctx.createRadialGradient(
+        centerX,
+        centerY,
+        radius * 0.5,
+        centerX,
+        centerY,
+        radius * 2.5
       );
+      glowGradient.addColorStop(0, powerupColor + "80");
+      glowGradient.addColorStop(0.5, powerupColor + "40");
+      glowGradient.addColorStop(1, powerupColor + "00");
+
+      ctx.fillStyle = glowGradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius * 2.5 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rotating energy rings
+      for (let i = 0; i < 2; i++) {
+        const ringRadius = radius + 8 + i * 6;
+        const rotation = time + i * Math.PI;
+
+        ctx.strokeStyle = powerupColor + "60";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 8]);
+        ctx.lineDashOffset = -rotation * 20;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    } else if (this.config.category === "detrimental") {
+      // Detrimental powerups: warning effects with danger indicators
+      const pulse = Math.sin(time * 3) * 0.4 + 0.6;
+
+      // Warning glow
+      const warningGradient = ctx.createRadialGradient(
+        centerX,
+        centerY,
+        radius * 0.3,
+        centerX,
+        centerY,
+        radius * 2
+      );
+      warningGradient.addColorStop(0, "#ff000080");
+      warningGradient.addColorStop(0.5, "#ff000040");
+      warningGradient.addColorStop(1, "#ff000000");
+
+      ctx.fillStyle = warningGradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Danger spikes
+      ctx.strokeStyle = "#ff0000";
+      ctx.lineWidth = 3;
       ctx.globalAlpha = pulse;
+
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2 + time;
+        const innerRadius = radius + 5;
+        const outerRadius = radius + 15 * pulse;
+
+        ctx.beginPath();
+        ctx.moveTo(
+          centerX + Math.cos(angle) * innerRadius,
+          centerY + Math.sin(angle) * innerRadius
+        );
+        ctx.lineTo(
+          centerX + Math.cos(angle) * outerRadius,
+          centerY + Math.sin(angle) * outerRadius
+        );
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    } else if (this.config.category === "chaotic") {
+      // Chaotic powerups: unpredictable swirling effects
+      const chaos1 = Math.sin(time * 1.7) * 0.5 + 0.5;
+      const chaos2 = Math.cos(time * 2.3) * 0.5 + 0.5;
+
+      // Swirling energy field
+      const chaosGradient = ctx.createRadialGradient(
+        centerX + chaos1 * 5,
+        centerY + chaos2 * 5,
+        radius * 0.2,
+        centerX,
+        centerY,
+        radius * 2
+      );
+      chaosGradient.addColorStop(0, powerupColor + "80");
+      chaosGradient.addColorStop(0.6, powerupColor + "40");
+      chaosGradient.addColorStop(1, powerupColor + "00");
+
+      ctx.fillStyle = chaosGradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Chaotic spiral
+      ctx.strokeStyle = powerupColor;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.6;
+
+      ctx.beginPath();
+      for (let i = 0; i < 30; i++) {
+        const spiralAngle = (i / 30) * Math.PI * 4 + time * 2;
+        const spiralRadius = (radius + 10) * (i / 30);
+        const x = centerX + Math.cos(spiralAngle) * spiralRadius * chaos1;
+        const y = centerY + Math.sin(spiralAngle) * spiralRadius * chaos2;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+
+    // Main powerup body with gradient
+    const bodyGradient = ctx.createRadialGradient(
+      centerX - radius * 0.3,
+      centerY - radius * 0.3,
+      0,
+      centerX,
+      centerY,
+      radius
+    );
+    bodyGradient.addColorStop(0, "#ffffff40");
+    bodyGradient.addColorStop(0.3, powerupColor);
+    bodyGradient.addColorStop(1, powerupColor + "cc");
+
+    ctx.fillStyle = bodyGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Border highlight
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
 
     // Emoji icon
     ctx.fillStyle = "#000";

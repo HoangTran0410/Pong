@@ -6,7 +6,7 @@ class PowerupUI {
     this.settings = {
       powerupsEnabled: true,
       enabledPowerups: new Set(),
-      collapsed: false,
+      collapsed: true,
     };
 
     this.elements = {

@@ -165,9 +165,14 @@ class PhysicsSystem {
     }
   }
 
-  // Filter out off-screen balls
+  // Filter out off-screen balls (modifies array in-place)
   filterOffScreenBalls(balls) {
-    return balls.filter((ball) => !ball.isOffScreen());
+    // Remove balls that are off-screen by modifying the array in-place
+    for (let i = balls.length - 1; i >= 0; i--) {
+      if (balls[i].isOffScreen()) {
+        balls.splice(i, 1);
+      }
+    }
   }
 
   // Update system (called by main game loop)
@@ -203,8 +208,8 @@ class PhysicsSystem {
       this.checkPortalCollisions(gameState.balls, gameState.portals);
     }
 
-    // Filter off-screen balls
-    gameState.balls = this.filterOffScreenBalls(gameState.balls);
+    // Filter off-screen balls (modifies array in-place)
+    this.filterOffScreenBalls(gameState.balls);
 
     return {
       paddleCollisions,

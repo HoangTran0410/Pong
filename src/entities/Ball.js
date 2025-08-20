@@ -1,11 +1,12 @@
 import { CONFIG } from "../config/game.js";
 import BallTrail from "./BallTrail.js";
 import eventBus from "../core/EventBus.js";
+import { generateId, clamp } from "../utils/index.js";
 
 // Ball Entity - Self-contained ball object with physics and rendering
 class Ball {
   constructor(x, y, id = null) {
-    this.id = id || `ball_${Date.now()}_${Math.random()}`;
+    this.id = id || generateId("ball");
     this.x = x;
     this.y = y;
     this.radius = CONFIG.BALL_SIZE;
@@ -13,6 +14,8 @@ class Ball {
     this.dx = CONFIG.BALL_SPEED;
     this.dy = 0;
     this.lastHitBy = null;
+
+    this.disabled = false;
 
     // Powerup effects
     this.effects = new Map();
@@ -132,17 +135,23 @@ class Ball {
 
     // Left and right walls (ball goes off screen)
     if (this.x - this.radius <= 0) {
-      eventBus.emit("ball:score", {
-        ball: this,
-        scorer: "right",
-        points: 1,
-      });
+      if (!this.disabled) {
+        eventBus.emit("ball:score", {
+          ball: this,
+          scorer: "right",
+          points: 1,
+        });
+        this.disabled = true;
+      }
     } else if (this.x + this.radius >= CONFIG.CANVAS_WIDTH) {
-      eventBus.emit("ball:score", {
-        ball: this,
-        scorer: "left",
-        points: 1,
-      });
+      if (!this.disabled) {
+        eventBus.emit("ball:score", {
+          ball: this,
+          scorer: "left",
+          points: 1,
+        });
+        this.disabled = true;
+      }
     }
   }
 
@@ -203,10 +212,7 @@ class Ball {
     const finalAngle = baseAngle + randomAngleOffset;
 
     // Clamp angle to reasonable bounds and ensure variety
-    let clampedAngle = Math.max(
-      -Math.PI / 3,
-      Math.min(Math.PI / 3, finalAngle)
-    );
+    let clampedAngle = clamp(finalAngle, -Math.PI / 3, Math.PI / 3);
 
     // Prevent the ball from getting stuck in vertical patterns
     if (Math.abs(clampedAngle) > Math.PI / 4) {
@@ -235,6 +241,12 @@ class Ball {
       );
       newDy = Math.sin(clampedAngle) * currentSpeed;
     }
+
+    // Add paddle momentum transfer for more realistic physics
+    const paddleVelocityY = paddle.velocity * CONFIG.PADDLE_MOMENTUM_TRANSFER;
+
+    // Apply paddle momentum to ball's vertical velocity
+    newDy += paddleVelocityY;
 
     // Apply new velocities
     this.dx = newDx;

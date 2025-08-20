@@ -260,6 +260,13 @@ class RenderSystem {
     this.particles = [];
   }
 
+  // Render flash texts
+  renderFlashTexts(flashTexts) {
+    flashTexts.forEach((flashText) => {
+      flashText.render(this.ctx);
+    });
+  }
+
   // Main render method
   render(gameState) {
     // Update particles
@@ -283,6 +290,9 @@ class RenderSystem {
 
     // Render particles on top of everything
     this.renderParticles();
+
+    // Render flash texts (on top of everything)
+    this.renderFlashTexts(gameState.flashTexts || []);
   }
 }
 

@@ -13,6 +13,10 @@ class Paddle {
     this.speed = CONFIG.PADDLE_SPEED;
     this.targetY = y;
 
+    // Velocity tracking for momentum transfer
+    this.previousY = y;
+    this.velocity = 0;
+
     // AI-specific properties
     this.aiVelocity = 0;
     this.aiMaxSpeed = CONFIG.PADDLE_SPEED * CONFIG.AI_MAX_SPEED_MULTIPLIER;
@@ -35,6 +39,9 @@ class Paddle {
 
   // Update paddle position based on mode
   update(inputState, gameState) {
+    // Store previous position for velocity calculation
+    this.previousY = this.y;
+
     switch (this.mode) {
       case "keyboard":
         this.updateKeyboard(inputState.keys);
@@ -55,6 +62,9 @@ class Paddle {
       0,
       Math.min(CONFIG.CANVAS_HEIGHT - this.currentHeight, this.y)
     );
+
+    // Calculate velocity for momentum transfer
+    this.velocity = this.y - this.previousY;
   }
 
   // Keyboard controls
@@ -374,6 +384,10 @@ class Paddle {
     this.y = CONFIG.CANVAS_HEIGHT / 2 - this.baseHeight / 2;
     this.currentHeight = this.baseHeight;
     this.effects.clear();
+
+    // Reset velocity tracking
+    this.previousY = this.y;
+    this.velocity = 0;
 
     // Reset shield
     this.hasShield = false;

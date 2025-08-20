@@ -1,6 +1,8 @@
 // Event Bus System for Game Communication
 // Provides subscribe/emit functionality for decoupled component communication
 
+import { generateId } from "../utils/index.js";
+
 class EventBus {
   constructor() {
     this.events = new Map();
@@ -21,7 +23,7 @@ class EventBus {
     const listener = {
       callback,
       context,
-      id: Date.now() + Math.random(),
+      id: generateId("listener"),
     };
 
     this.events.get(eventName).push(listener);

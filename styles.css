@@ -155,7 +155,7 @@ body::before {
   color: #00ffff;
 }
 
-.speed-indicator {
+.timer {
   font-size: 1rem;
   color: #ffff00;
   text-shadow: 0 0 10px #ffff00;
@@ -268,7 +268,7 @@ body::before {
     font-size: 1.2rem;
   }
 
-  .speed-indicator {
+  .timer {
     font-size: 0.8rem;
   }
 

@@ -1,8 +1,14 @@
 import { CONFIG } from "../config/game.js";
 import { POWERUP_CONFIG } from "../config/powerups.js";
 import Powerup from "../entities/Powerup.js";
-import Ball from "../entities/Ball.js";
 import eventBus from "../core/EventBus.js";
+import {
+  lightenColor,
+  darkenColor,
+  distance,
+  randomChoice,
+  generateId,
+} from "../utils/index.js";
 
 // Powerup System - Handles powerup spawning, effects, and cleanup
 class PowerupSystem {
@@ -22,6 +28,24 @@ class PowerupSystem {
     });
   }
 
+  // Check if a position overlaps with existing powerups
+  isPositionOverlapping(x, y, minDistance = CONFIG.POWERUP_SIZE * 1.2) {
+    for (const powerup of this.powerups) {
+      if (powerup.collected) continue;
+
+      const centerX = x + CONFIG.POWERUP_SIZE / 2;
+      const centerY = y + CONFIG.POWERUP_SIZE / 2;
+      const powerupCenterX = powerup.x + CONFIG.POWERUP_SIZE / 2;
+      const powerupCenterY = powerup.y + CONFIG.POWERUP_SIZE / 2;
+
+      const dist = distance(centerX, centerY, powerupCenterX, powerupCenterY);
+      if (dist < minDistance) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Spawn a new powerup
   spawnPowerup() {
     if (this.powerups.length >= CONFIG.MAX_POWERUPS_ON_SCREEN) return;
@@ -36,19 +60,30 @@ class PowerupSystem {
       const spawnAreaWidth = CONFIG.CANVAS_WIDTH / 1.5;
       const spawnAreaHeight = CONFIG.CANVAS_HEIGHT / 1.5;
 
-      let x = centerX - spawnAreaWidth / 2 + Math.random() * spawnAreaWidth;
-      let y = centerY - spawnAreaHeight / 2 + Math.random() * spawnAreaHeight;
+      let x, y;
+      let attempts = 0;
+      const maxAttempts = 50; // Prevent infinite loops
 
-      // Ensure powerup stays within canvas bounds
-      x = Math.max(
-        CONFIG.POWERUP_SIZE / 2,
-        Math.min(x, CONFIG.CANVAS_WIDTH - CONFIG.POWERUP_SIZE / 2)
-      );
-      y = Math.max(
-        CONFIG.POWERUP_SIZE / 2,
-        Math.min(y, CONFIG.CANVAS_HEIGHT - CONFIG.POWERUP_SIZE / 2)
-      );
+      // Try to find a non-overlapping position
+      do {
+        x = centerX - spawnAreaWidth / 2 + Math.random() * spawnAreaWidth;
+        y = centerY - spawnAreaHeight / 2 + Math.random() * spawnAreaHeight;
 
+        // Ensure powerup stays within canvas bounds
+        x = Math.max(
+          CONFIG.POWERUP_SIZE / 2,
+          Math.min(x, CONFIG.CANVAS_WIDTH - CONFIG.POWERUP_SIZE / 2)
+        );
+        y = Math.max(
+          CONFIG.POWERUP_SIZE / 2,
+          Math.min(y, CONFIG.CANVAS_HEIGHT - CONFIG.POWERUP_SIZE / 2)
+        );
+
+        attempts++;
+      } while (this.isPositionOverlapping(x, y) && attempts < maxAttempts);
+
+      // Only spawn if we found a non-overlapping position or hit max attempts
+      // (still spawn at max attempts to avoid permanently blocking spawns)
       const powerup = new Powerup(x, y, type);
       this.powerups.push(powerup);
     }
@@ -57,7 +92,7 @@ class PowerupSystem {
   // Get random powerup type
   getRandomPowerupType() {
     const types = Object.keys(POWERUP_CONFIG);
-    return types[Math.floor(Math.random() * types.length)];
+    return randomChoice(types);
   }
 
   // Check powerup collisions with balls
@@ -79,6 +114,9 @@ class PowerupSystem {
               y: centerPos.y,
               powerupType: powerup.type,
             });
+
+            // Show flash text for special powerups
+            this.showPowerupFlashText(powerup.type);
 
             collisions.push({ powerup, ball, index });
           }
@@ -119,6 +157,9 @@ class PowerupSystem {
     }
     if (effect.shield) {
       this.applyShield(ball);
+    }
+    if (effect.swapScore) {
+      this.applySwapScore();
     }
 
     // Apply timed effects
@@ -168,23 +209,21 @@ class PowerupSystem {
       x: 50 + Math.random() * (CONFIG.CANVAS_WIDTH - 200),
       y: 50 + Math.random() * (CONFIG.CANVAS_HEIGHT - 200),
       radius: 25,
-      id: Date.now() + Math.random(),
+      id: generateId("portal"),
     };
 
     const portal2 = {
       x: 50 + Math.random() * (CONFIG.CANVAS_WIDTH - 200),
       y: 50 + Math.random() * (CONFIG.CANVAS_HEIGHT - 200),
       radius: 25,
-      id: Date.now() + Math.random() + 1,
+      id: generateId("portal"),
     };
 
     // Ensure portals are not too close to each other
     const minDistance = 150;
-    const distance = Math.sqrt(
-      Math.pow(portal2.x - portal1.x, 2) + Math.pow(portal2.y - portal1.y, 2)
-    );
+    const dist = distance(portal1.x, portal1.y, portal2.x, portal2.y);
 
-    if (distance < minDistance) {
+    if (dist < minDistance) {
       const angle = Math.atan2(portal2.y - portal1.y, portal2.x - portal1.x);
       portal2.x = portal1.x + Math.cos(angle) * minDistance;
       portal2.y = portal1.y + Math.sin(angle) * minDistance;
@@ -245,6 +284,131 @@ class PowerupSystem {
       side: paddleSide,
       ball,
     });
+  }
+
+  // Apply swap score powerup
+  applySwapScore() {
+    eventBus.emit("game:swapScores", {});
+  }
+
+  // Generate flash text colors from powerup configuration
+  generateFlashTextColors(powerupConfig) {
+    const baseColor = powerupConfig.color || "#ffff00";
+
+    // Create glow and shadow colors based on the powerup category
+    let glowColor, shadowColor;
+
+    if (powerupConfig.category === "beneficial") {
+      // Beneficial powerups: bright glow, darker shadow
+      glowColor = lightenColor(baseColor, 0.4);
+      shadowColor = darkenColor(baseColor, 0.7);
+    } else if (powerupConfig.category === "detrimental") {
+      // Detrimental powerups: warning glow, dark shadow
+      glowColor = lightenColor(baseColor, 0.3);
+      shadowColor = darkenColor(baseColor, 0.8);
+    } else {
+      // Chaotic powerups: moderate glow
+      glowColor = lightenColor(baseColor, 0.3);
+      shadowColor = darkenColor(baseColor, 0.6);
+    }
+
+    return {
+      color: baseColor,
+      glowColor,
+      shadowColor,
+    };
+  }
+
+  // Show flash text for special powerups
+  showPowerupFlashText(powerupType) {
+    const config = POWERUP_CONFIG[powerupType];
+    if (!config) return;
+
+    let message = "";
+
+    // Generate colors from powerup config
+    const colors = this.generateFlashTextColors(config);
+    let options = {
+      duration: 1500,
+      color: colors.color,
+      glowColor: colors.glowColor,
+      shadowColor: colors.shadowColor,
+    };
+
+    // Special messages for different powerup types
+    switch (powerupType) {
+      case "swap_score":
+        // Don't show flash text here as it's handled in Game.swapScores()
+        return;
+
+      case "clone_ball":
+        message = "CLONE BALL!";
+        break;
+
+      case "portal":
+        message = "PORTAL OPENED!";
+        break;
+
+      case "shield":
+        message = "SHIELD ACTIVE!";
+        break;
+
+      case "random_wall":
+        message = "WALL SPAWNED!";
+        break;
+
+      case "score_bonus":
+        message = "+5 POINTS!";
+        break;
+
+      case "score_penalty":
+        message = "-3 POINTS!";
+        break;
+
+      case "bigger_paddle":
+        message = "BIG PADDLE!";
+        break;
+
+      case "smaller_paddle":
+        message = "SMALL PADDLE!";
+        break;
+
+      case "speed_up":
+        message = "SPEED UP!";
+        break;
+
+      case "speed_down":
+        message = "SLOW DOWN!";
+        break;
+
+      case "bigger_ball":
+        message = "BIG BALL!";
+        break;
+
+      case "smaller_ball":
+        message = "SMALL BALL!";
+        break;
+
+      case "random_direction":
+        message = "RANDOM DIR!";
+        break;
+
+      default:
+        // For other powerups, show the label
+        if (config.label && config.label !== "undefined") {
+          message = config.label.toUpperCase() + "!";
+        } else {
+          return; // Don't show flash text for basic powerups
+        }
+        break;
+    }
+
+    if (message) {
+      eventBus.emit("game:showFlashText", {
+        text: message,
+        options: options,
+      });
+    }
   }
 
   // Apply timed effect

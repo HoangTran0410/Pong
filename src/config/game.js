@@ -9,6 +9,7 @@ export const CONFIG = {
   PADDLE_HEIGHT: 100,
   PADDLE_SPEED: 8,
   PADDLE_MARGIN: 20,
+  PADDLE_MOMENTUM_TRANSFER: 0.3, // How much paddle velocity transfers to ball (0.0 to 1.0)
 
   // AI Paddle Settings
   AI_MAX_SPEED_MULTIPLIER: 0.6, // AI moves at 60% of player speed

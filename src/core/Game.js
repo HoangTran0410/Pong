@@ -2,6 +2,7 @@ import { CONFIG } from "../config/game.js";
 import PhysicsSystem from "../systems/PhysicsSystem.js";
 import RenderSystem from "../systems/RenderSystem.js";
 import PowerupSystem from "../systems/PowerupSystem.js";
+import FlashTextSystem from "../systems/FlashTextSystem.js";
 import Paddle from "../entities/Paddle.js";
 import Ball from "../entities/Ball.js";
 import eventBus from "./EventBus.js";
@@ -17,7 +18,12 @@ class Game {
     // Game state
     this.leftScore = 0;
     this.rightScore = 0;
-    this.currentSpeed = 1;
+    this.startTime = null;
+    this.elapsedTime = 0;
+    this.lastDisplayedTime = -1;
+
+    // Cached DOM elements
+    this.timerElement = null;
 
     // Input handling
     this.keys = {};
@@ -33,6 +39,7 @@ class Game {
     this.physicsSystem = new PhysicsSystem();
     this.renderSystem = new RenderSystem(canvas, this.ctx);
     this.powerupSystem = new PowerupSystem();
+    this.flashTextSystem = new FlashTextSystem();
 
     // Resize handling
     this.resizeTimeout = null;
@@ -75,6 +82,7 @@ class Game {
     // Ball scoring
     eventBus.subscribe("ball:score", (data) => {
       this.addScore(data.scorer, data.points);
+      this.handleGoalNotification(data.scorer, data.points);
     });
 
     // Ball spawning (from clone powerup)
@@ -85,6 +93,11 @@ class Game {
     // Score changes from powerups
     eventBus.subscribe("game:scoreChange", (data) => {
       this.addScore(data.side, data.points);
+    });
+
+    // Score swap from powerups
+    eventBus.subscribe("game:swapScores", () => {
+      this.swapScores();
     });
 
     // Paddle effects
@@ -115,11 +128,6 @@ class Game {
       if (ball) {
         ball.removeEffect(data.type);
       }
-    });
-
-    // Speed indicator updates
-    eventBus.subscribe("ball:paddleCollision", () => {
-      this.updateSpeedIndicator();
     });
   }
 
@@ -220,11 +228,36 @@ class Game {
   // Start game
   start() {
     this.isRunning = true;
+    this.startTime = Date.now();
+    this.elapsedTime = 0;
+    this.lastDisplayedTime = -1;
+
+    // Cache timer element
+    this.timerElement = document.querySelector(".timer");
+
+    // Show game start notification
+    this.flashTextSystem.addFlashText("GAME START!", {
+      color: "#00ff00",
+      glowColor: "#88ff88",
+      shadowColor: "#004400",
+      duration: 2000,
+      fontSize: 36,
+    });
+
     this.gameLoop();
   }
 
   // Pause/Resume game
   togglePause() {
+    if (this.isPaused) {
+      // Resuming: adjust start time to account for paused duration
+      const pausedDuration = Date.now() - this.pauseStartTime;
+      this.startTime += pausedDuration;
+    } else {
+      // Pausing: record when pause started
+      this.pauseStartTime = Date.now();
+    }
+
     this.isPaused = !this.isPaused;
     if (!this.isPaused) {
       this.gameLoop();
@@ -276,6 +309,12 @@ class Game {
     // Check powerup collisions
     this.powerupSystem.checkCollisions(this.balls);
 
+    // Update flash text system
+    this.flashTextSystem.update();
+
+    // Update timer
+    this.updateTimer();
+
     // Spawn new ball if no balls exist
     if (this.balls.length === 0) {
       this.balls.push(
@@ -293,21 +332,38 @@ class Game {
       powerups: this.powerupSystem.getPowerups(),
       randomWalls: this.powerupSystem.getRandomWalls(),
       portals: this.powerupSystem.getPortals(),
+      flashTexts: this.flashTextSystem.getFlashTexts(),
     };
 
     this.renderSystem.render(gameState);
   }
 
-  // Update speed indicator
-  updateSpeedIndicator() {
-    const avgSpeed =
-      this.balls.reduce((sum, ball) => sum + ball.getSpeed(), 0) /
-      this.balls.length;
-    this.currentSpeed = Math.min(CONFIG.MAX_BALL_SPEED, avgSpeed);
+  // Update timer display (only when seconds change)
+  updateTimer() {
+    if (this.startTime && this.isRunning && !this.isPaused) {
+      this.elapsedTime = Date.now() - this.startTime;
+    }
 
-    const speedIndicator = document.querySelector(".speed-indicator");
-    if (speedIndicator) {
-      speedIndicator.textContent = `Speed: ${this.currentSpeed.toFixed(1)}`;
+    const totalSeconds = Math.floor(this.elapsedTime / 1000);
+
+    // Only update display if the second has changed
+    if (totalSeconds !== this.lastDisplayedTime) {
+      this.lastDisplayedTime = totalSeconds;
+
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      const timeString = `${minutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
+
+      // Cache timer element on first use
+      if (!this.timerElement) {
+        this.timerElement = document.querySelector(".timer");
+      }
+
+      if (this.timerElement) {
+        this.timerElement.textContent = timeString;
+      }
     }
   }
 
@@ -328,6 +384,23 @@ class Game {
     this.updateScoreDisplay();
   }
 
+  // Swap scores between left and right players
+  swapScores() {
+    const temp = this.leftScore;
+    this.leftScore = this.rightScore;
+    this.rightScore = temp;
+
+    this.updateScoreDisplay();
+
+    // Show flash text notification
+    this.flashTextSystem.addFlashText("SCORES SWAPPED!", {
+      color: "#ff6b6b",
+      glowColor: "#ff9999",
+      shadowColor: "#441111",
+      duration: 2500,
+    });
+  }
+
   // Update score display
   updateScoreDisplay() {
     const leftScoreElement = document.querySelector(".left-score");
@@ -337,11 +410,40 @@ class Game {
     if (rightScoreElement) rightScoreElement.textContent = this.rightScore;
   }
 
+  // Handle goal notifications
+  handleGoalNotification(scorer, points) {
+    console.log("handleGoalNotification", scorer, points);
+
+    let message = "";
+    let options = {
+      duration: 2500,
+      fontSize: 36,
+    };
+
+    // Regular goal notification
+    if (scorer === "left") {
+      message = "LEFT SCORES!";
+      options.color = "#00ff00";
+      options.glowColor = "#88ff88";
+      options.shadowColor = "#004400";
+    } else {
+      message = "RIGHT SCORES!";
+      options.color = "#00ccff";
+      options.glowColor = "#88ddff";
+      options.shadowColor = "#004488";
+    }
+
+    // Show the main goal notification
+    this.flashTextSystem.addFlashText(message, options);
+  }
+
   // Reset game
   reset() {
     this.leftScore = 0;
     this.rightScore = 0;
-    this.currentSpeed = 1;
+    this.startTime = null;
+    this.elapsedTime = 0;
+    this.lastDisplayedTime = -1;
 
     // Reset paddles
     this.leftPaddle.reset();
@@ -353,10 +455,11 @@ class Game {
     // Clear systems
     this.powerupSystem.clear();
     this.renderSystem.clearParticles();
+    this.flashTextSystem.clear();
 
     // Update UI
     this.updateScoreDisplay();
-    this.updateSpeedIndicator();
+    this.updateTimer();
   }
 
   // Get game state for AI

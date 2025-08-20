@@ -101,11 +101,8 @@ class Game {
         const canvasY = (e.clientY - rect.top) * scaleY;
 
         // Follow the last moved paddle (heuristic)
-        if (canvasX < this.canvas.width / 2) {
-          this.pointerYLeft = canvasY;
-        } else {
-          this.pointerYRight = canvasY;
-        }
+        this.pointerYLeft = canvasY;
+        this.pointerYRight = canvasY;
       } catch (error) {
         console.error("Error in mouse coordinate calculation:", error);
         // Fallback to basic coordinate calculation

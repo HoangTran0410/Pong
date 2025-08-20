@@ -283,10 +283,10 @@ class Paddle {
     ctx.setLineDash([]);
 
     // Shield icon - positioned at paddle center
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("🛡️", shieldX + 5, this.y + this.currentHeight / 2 + 4);
+    // ctx.fillStyle = "#ffffff";
+    // ctx.font = "12px Arial";
+    // ctx.textAlign = "center";
+    // ctx.fillText("🛡️", shieldX + 5, this.y + this.currentHeight / 2 + 4);
   }
 
   // Check collision with ball - improved with more varied hit angles

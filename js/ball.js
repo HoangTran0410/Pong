@@ -1,4 +1,5 @@
 import { CONFIG } from "./config.js";
+import BallTrail from "./ball-trail.js";
 
 // Ball Class
 class Ball {
@@ -18,6 +19,9 @@ class Ball {
     // Store base speed for effects
     this.baseSpeed = CONFIG.BALL_SPEED;
     this.currentSpeedMultiplier = 1;
+
+    // Retro trail helper
+    this.trail = new BallTrail();
   }
 
   // Get current speed magnitude
@@ -53,6 +57,11 @@ class Ball {
 
     // Check wall collisions
     this.checkWallCollision();
+
+    // Record position for retro trail
+    if (CONFIG.BALL_TRAIL && CONFIG.BALL_TRAIL.ENABLED) {
+      this.trail.push(this.x, this.y, this.radius, CONFIG.BALL_TRAIL.LENGTH);
+    }
   }
 
   // Check collision with walls
@@ -156,6 +165,9 @@ class Ball {
     this.effects.clear();
     this.currentSpeedMultiplier = 1;
     this.baseSpeed = CONFIG.BALL_SPEED;
+
+    // Clear trail
+    this.trail.clear();
   }
 
   // Check if ball is off screen
@@ -170,6 +182,15 @@ class Ball {
 
   // Render ball with retro style
   render(ctx) {
+    // Retro square trail behind the ball
+    if (CONFIG.BALL_TRAIL && CONFIG.BALL_TRAIL.ENABLED) {
+      this.trail.render(
+        ctx,
+        CONFIG.COLORS.BALL_TRAIL,
+        CONFIG.BALL_TRAIL.OPACITY
+      );
+    }
+
     // Main ball
     ctx.fillStyle = CONFIG.COLORS.BALL;
     ctx.beginPath();
@@ -177,14 +198,14 @@ class Ball {
     ctx.fill();
 
     // Retro scanlines effect
-    ctx.strokeStyle = "#aa0000";
-    ctx.lineWidth = 1;
-    for (let i = -this.radius; i < this.radius; i += 3) {
-      ctx.beginPath();
-      ctx.moveTo(this.x - this.radius, this.y + i);
-      ctx.lineTo(this.x + this.radius, this.y + i);
-      ctx.stroke();
-    }
+    // ctx.strokeStyle = "#aa0000";
+    // ctx.lineWidth = 1;
+    // for (let i = -this.radius; i < this.radius; i += 3) {
+    //   ctx.beginPath();
+    //   ctx.moveTo(this.x - this.radius, this.y + i);
+    //   ctx.lineTo(this.x + this.radius, this.y + i);
+    //   ctx.stroke();
+    // }
 
     // Glowing border for powerup effects
     if (this.effects.size > 0) {

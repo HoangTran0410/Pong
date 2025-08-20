@@ -135,8 +135,10 @@ class PowerupManager {
 
   // Check if ball collides with powerup
   isColliding(ball, powerup) {
-    const dx = ball.x - powerup.x;
-    const dy = ball.y - powerup.y;
+    const px = powerup.x + CONFIG.POWERUP_SIZE / 2;
+    const py = powerup.y + CONFIG.POWERUP_SIZE / 2;
+    const dx = ball.x - px;
+    const dy = ball.y - py;
     const distance = Math.sqrt(dx * dx + dy * dy);
     return distance < ball.radius + CONFIG.POWERUP_SIZE / 2;
   }
@@ -237,8 +239,8 @@ class PowerupManager {
     const wall = {
       x: Math.random() * (CONFIG.CANVAS_WIDTH - 100),
       y: Math.random() * (CONFIG.CANVAS_HEIGHT - 100),
-      width: 50 + Math.random() * 100,
-      height: 20 + Math.random() * 40,
+      width: 10 + Math.random() * 30,
+      height: 50 + Math.random() * 100,
     };
     this.randomWalls.push(wall);
 
@@ -405,18 +407,49 @@ class PowerupManager {
   // Check collision with random walls
   checkWallCollision(ball) {
     this.randomWalls.forEach((wall) => {
-      if (
+      // Broad-phase AABB check between circle (as AABB) and rect
+      const overlaps =
         ball.x + ball.radius > wall.x &&
         ball.x - ball.radius < wall.x + wall.width &&
         ball.y + ball.radius > wall.y &&
-        ball.y - ball.radius < wall.y + wall.height
-      ) {
-        // Bounce off wall
-        if (ball.x < wall.x || ball.x > wall.x + wall.width) {
-          ball.dx = -ball.dx;
+        ball.y - ball.radius < wall.y + wall.height;
+
+      if (!overlaps) return;
+
+      // Compute penetration depth to each side
+      const overlapLeft = ball.x + ball.radius - wall.x; // ball penetrating left side of wall
+      const overlapRight = wall.x + wall.width - (ball.x - ball.radius); // penetrating right side
+      const overlapTop = ball.y + ball.radius - wall.y; // top side
+      const overlapBottom = wall.y + wall.height - (ball.y - ball.radius); // bottom side
+
+      const minOverlapX = Math.min(overlapLeft, overlapRight);
+      const minOverlapY = Math.min(overlapTop, overlapBottom);
+
+      if (minOverlapX < minOverlapY) {
+        // Resolve along X axis
+        if (overlapLeft < overlapRight) {
+          // Collided with wall's left face → push ball to the left
+          ball.x = wall.x - ball.radius;
         } else {
-          ball.dy = -ball.dy;
+          // Collided with wall's right face → push ball to the right
+          ball.x = wall.x + wall.width + ball.radius;
         }
+        ball.dx = -ball.dx;
+      } else {
+        // Resolve along Y axis
+        if (overlapTop < overlapBottom) {
+          // Collided with wall's top face → push ball upward
+          ball.y = wall.y - ball.radius;
+        } else {
+          // Collided with wall's bottom face → push ball downward
+          ball.y = wall.y + wall.height + ball.radius;
+        }
+        ball.dy = -ball.dy;
+      }
+
+      // Optional: feedback on impact
+      if (ball.game && ball.game.createParticleEffect) {
+        ball.game.createParticleEffect(ball.x, ball.y, "wall_hit");
       }
     });
   }

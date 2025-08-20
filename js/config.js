@@ -29,6 +29,13 @@ export const CONFIG = {
   MAX_BALL_SPEED: 10,
   SPEED_INCREMENT: 0.1,
 
+  // Ball Trail (retro-style)
+  BALL_TRAIL: {
+    ENABLED: true,
+    LENGTH: 12,
+    OPACITY: 0.6,
+  },
+
   // Powerups
   POWERUP_SIZE: 30,
   POWERUP_SPAWN_RATE: 0.02, // 2% chance per frame (increased from 0.5%)
@@ -39,6 +46,7 @@ export const CONFIG = {
   COLORS: {
     PADDLE: "#00ff00",
     BALL: "#ff0000",
+    BALL_TRAIL: "#aa1111",
     POWERUP: "#ffff00",
     BACKGROUND: "#000000",
     WALL: "#ff6b6b",

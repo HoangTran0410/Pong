@@ -155,37 +155,37 @@ class ParticleManager {
   // Get default particle count based on type
   getDefaultCount(type) {
     const config = PARTICLE_CONFIG[type];
-    if (!config) return 15;
+    if (!config) return 5;
 
     // Return count based on particle type characteristics
     switch (type) {
       case "explosion":
-        return 20;
+        return 10;
       case "magic":
-        return 25;
+        return 15;
       case "score":
         return 18;
       default:
-        return 15;
+        return 5;
     }
   }
 
   // Get powerup effect configuration
   getPowerupEffectConfig(powerupType) {
     if (powerupType.includes("speed") || powerupType.includes("ball")) {
-      return { type: "explosion", count: 20 };
+      return { type: "explosion", count: 10 };
     } else if (
       powerupType.includes("clone") ||
       powerupType.includes("portal")
     ) {
-      return { type: "magic", count: 25 };
+      return { type: "magic", count: 10 };
     } else if (
       powerupType.includes("score") ||
       powerupType.includes("points")
     ) {
-      return { type: "score", count: 18 };
+      return { type: "score", count: 10 };
     } else {
-      return { type: "sparkle", count: 15 };
+      return { type: "sparkle", count: 5 };
     }
   }
 

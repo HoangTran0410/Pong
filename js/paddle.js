@@ -334,19 +334,50 @@ class Paddle {
       const baseAngle = ((hitPoint - 0.5) * Math.PI) / 3; // -30 to +30 degrees
       const finalAngle = baseAngle + randomAngleOffset;
 
-      // Clamp angle to reasonable bounds
-      const clampedAngle = Math.max(
+      // Clamp angle to reasonable bounds and ensure variety
+      let clampedAngle = Math.max(
         -Math.PI / 3,
         Math.min(Math.PI / 3, finalAngle)
       );
 
-      if (this.side === "left") {
-        ball.dx = Math.abs(ball.dx);
-        ball.dy = Math.sin(clampedAngle) * ball.getSpeed();
-      } else {
-        ball.dx = -Math.abs(ball.dx);
-        ball.dy = Math.sin(clampedAngle) * ball.getSpeed();
+      // Prevent the ball from getting stuck in vertical patterns
+      // If the ball is moving very vertically, add some horizontal variation
+      if (Math.abs(clampedAngle) > Math.PI / 4) {
+        // If angle is > 45 degrees
+        const horizontalBias = (Math.random() - 0.5) * 0.4; // ±0.2 radians
+        clampedAngle = clampedAngle * 0.7 + horizontalBias * 0.3; // Blend with horizontal bias
       }
+
+      // Get current ball speed
+      const currentSpeed = ball.getSpeed();
+
+      // Calculate new velocity components
+      let newDx, newDy;
+
+      if (this.side === "left") {
+        // Ensure minimum horizontal velocity to prevent near-vertical movement
+        const minHorizontalSpeed = currentSpeed * 0.3; // At least 30% of speed should be horizontal
+        newDx = Math.max(
+          minHorizontalSpeed,
+          Math.abs(Math.cos(clampedAngle) * currentSpeed)
+        );
+        newDy = Math.sin(clampedAngle) * currentSpeed;
+      } else {
+        // Ensure minimum horizontal velocity to prevent near-vertical movement
+        const minHorizontalSpeed = currentSpeed * 0.3; // At least 30% of speed should be horizontal
+        newDx = -Math.max(
+          minHorizontalSpeed,
+          Math.abs(Math.cos(clampedAngle) * currentSpeed)
+        );
+        newDy = Math.sin(clampedAngle) * currentSpeed;
+      }
+
+      // Apply new velocities
+      ball.dx = newDx;
+      ball.dy = newDy;
+
+      // Ensure minimum horizontal velocity to prevent stalling
+      ball.ensureMinimumHorizontalVelocity(0.3);
 
       ball.lastHitBy = this.side;
 

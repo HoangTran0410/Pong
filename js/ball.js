@@ -38,6 +38,37 @@ class Ball {
     }
   }
 
+  // Ensure minimum horizontal velocity to prevent vertical stalling
+  ensureMinimumHorizontalVelocity(minHorizontalRatio = 0.3) {
+    const currentSpeed = this.getSpeed();
+    const horizontalSpeed = Math.abs(this.dx);
+    const minHorizontalSpeed = currentSpeed * minHorizontalRatio;
+
+    if (horizontalSpeed < minHorizontalSpeed) {
+      // Increase horizontal velocity while maintaining total speed
+      const horizontalDeficit = minHorizontalSpeed - horizontalSpeed;
+      const verticalSpeed = Math.abs(this.dy);
+
+      if (this.dx >= 0) {
+        this.dx += horizontalDeficit;
+      } else {
+        this.dx -= horizontalDeficit;
+      }
+
+      // Adjust vertical velocity to maintain total speed
+      const newHorizontalSpeed = Math.abs(this.dx);
+      const newVerticalSpeed = Math.sqrt(
+        currentSpeed * currentSpeed - newHorizontalSpeed * newHorizontalSpeed
+      );
+
+      if (this.dy >= 0) {
+        this.dy = newVerticalSpeed;
+      } else {
+        this.dy = -newVerticalSpeed;
+      }
+    }
+  }
+
   // Increase speed by increment while preserving direction
   increaseSpeed(increment) {
     const currentSpeed = this.getSpeed();
@@ -52,6 +83,12 @@ class Ball {
 
   // Update ball position
   update() {
+    // Ensure minimum speed to prevent ball from getting stuck
+    const currentSpeed = this.getSpeed();
+    if (currentSpeed < CONFIG.BALL_SPEED * 0.5) {
+      this.setSpeed(CONFIG.BALL_SPEED * 0.5);
+    }
+
     this.x += this.dx;
     this.y += this.dy;
 

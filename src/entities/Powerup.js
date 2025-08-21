@@ -10,6 +10,7 @@ class Powerup {
     this.type = type;
     this.collected = false;
     this.id = generateId("powerup");
+    this.collectionCooldown = 0; // Prevent multiple collections on low-end devices
 
     // Get powerup configuration
     this.config = POWERUP_CONFIG[type] || {
@@ -27,12 +28,10 @@ class Powerup {
 
   // Check if this powerup collides with a ball
   checkCollision(ball) {
-    if (this.collected) return false;
+    if (this.collected || this.collectionCooldown > 0) return false;
 
     const px = this.x + CONFIG.POWERUP_SIZE / 2;
     const py = this.y + CONFIG.POWERUP_SIZE / 2;
-    const dx = ball.x - px;
-    const dy = ball.y - py;
     const dist = distance(ball.x, ball.y, px, py);
 
     return dist < ball.radius + CONFIG.POWERUP_SIZE / 2;
@@ -40,6 +39,11 @@ class Powerup {
 
   // Update powerup state
   update(deltaTime) {
+    // Decrease collection cooldown
+    if (this.collectionCooldown > 0) {
+      this.collectionCooldown -= deltaTime || 16; // Assume 16ms if deltaTime not provided
+    }
+
     // Check if powerup should expire
     const age = Date.now() - this.startTime;
     if (age >= this.lifetime) {
@@ -54,7 +58,11 @@ class Powerup {
 
   // Mark powerup as collected
   collect() {
+    if (this.collected || this.collectionCooldown > 0) return false; // Already collected or in cooldown
+
     this.collected = true;
+    this.collectionCooldown = 100; // 100ms cooldown to prevent multiple collections
+    return true;
   }
 
   // Render powerup with enhanced visual effects

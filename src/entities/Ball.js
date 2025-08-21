@@ -165,91 +165,81 @@ class Ball {
 
   // Check collision with walls
   checkWallCollision() {
+    this.checkWallBounce();
+    this.checkScoring();
+  }
+
+  // Handle wall bouncing (non-scoring walls)
+  checkWallBounce() {
+    const buffer = 2; // Small buffer to prevent edge cases
+
     if (CONFIG.isVertical()) {
-      // Vertical mode: paddles are top/bottom, scoring on left/right walls
-      // Left and right walls
-      if (
-        this.x - this.radius <= 0 ||
-        this.x + this.radius >= CONFIG.CANVAS_WIDTH
-      ) {
-        this.dx = -this.dx;
-        this.x = Math.max(
-          this.radius,
-          Math.min(CONFIG.CANVAS_WIDTH - this.radius, this.x)
-        );
-
-        // Emit wall collision event
-        eventBus.emit("ball:wallCollision", {
-          ball: this,
-          x: this.x,
-          y: this.y,
-          type: "wall_hit",
-        });
-      }
-
-      // Top and bottom walls (ball goes off screen - scoring areas)
-      if (this.y - this.radius <= 0) {
-        if (!this.disabled) {
-          eventBus.emit("ball:score", {
-            ball: this,
-            scorer: "right", // Bottom paddle scores
-            points: 1,
-          });
-          this.disabled = true;
-        }
-      } else if (this.y + this.radius >= CONFIG.CANVAS_HEIGHT) {
-        if (!this.disabled) {
-          eventBus.emit("ball:score", {
-            ball: this,
-            scorer: "left", // Top paddle scores
-            points: 1,
-          });
-          this.disabled = true;
-        }
+      // Vertical mode: bounce off left/right walls
+      if (this.x - this.radius <= buffer) {
+        this.dx = Math.abs(this.dx); // Force rightward
+        this.x = this.radius + buffer;
+        this.emitWallCollision();
+      } else if (this.x + this.radius >= CONFIG.CANVAS_WIDTH - buffer) {
+        this.dx = -Math.abs(this.dx); // Force leftward
+        this.x = CONFIG.CANVAS_WIDTH - this.radius - buffer;
+        this.emitWallCollision();
       }
     } else {
-      // Horizontal mode: original logic
-      // Top and bottom walls
-      if (
-        this.y - this.radius <= 0 ||
-        this.y + this.radius >= CONFIG.CANVAS_HEIGHT
-      ) {
-        this.dy = -this.dy;
-        this.y = Math.max(
-          this.radius,
-          Math.min(CONFIG.CANVAS_HEIGHT - this.radius, this.y)
-        );
-
-        // Emit wall collision event
-        eventBus.emit("ball:wallCollision", {
-          ball: this,
-          x: this.x,
-          y: this.y,
-          type: "wall_hit",
-        });
-      }
-
-      // Left and right walls (ball goes off screen)
-      if (this.x - this.radius <= 0) {
-        if (!this.disabled) {
-          eventBus.emit("ball:score", {
-            ball: this,
-            scorer: "right",
-            points: 1,
-          });
-          this.disabled = true;
-        }
-      } else if (this.x + this.radius >= CONFIG.CANVAS_WIDTH) {
-        if (!this.disabled) {
-          eventBus.emit("ball:score", {
-            ball: this,
-            scorer: "left",
-            points: 1,
-          });
-          this.disabled = true;
-        }
+      // Horizontal mode: bounce off top/bottom walls
+      if (this.y - this.radius <= buffer) {
+        this.dy = Math.abs(this.dy); // Force downward
+        this.y = this.radius + buffer;
+        this.emitWallCollision();
+      } else if (this.y + this.radius >= CONFIG.CANVAS_HEIGHT - buffer) {
+        this.dy = -Math.abs(this.dy); // Force upward
+        this.y = CONFIG.CANVAS_HEIGHT - this.radius - buffer;
+        this.emitWallCollision();
       }
     }
+  }
+
+  // Handle scoring (ball goes off screen)
+  checkScoring() {
+    if (this.disabled) return;
+
+    const scoreBuffer = this.radius * 2 - 2; // Trigger scoring before ball is completely off screen
+
+    if (CONFIG.isVertical()) {
+      // Vertical mode: score on top/bottom
+      if (this.y + scoreBuffer < 0) {
+        this.triggerScore("right"); // Bottom paddle scores
+      } else if (this.y - scoreBuffer > CONFIG.CANVAS_HEIGHT) {
+        this.triggerScore("left"); // Top paddle scores
+      }
+    } else {
+      console.log(this.x + scoreBuffer);
+      // Horizontal mode: score on left/right
+      if (this.x + scoreBuffer < 0) {
+        this.triggerScore("right"); // Right paddle scores
+      } else if (this.x - scoreBuffer > CONFIG.CANVAS_WIDTH) {
+        this.triggerScore("left"); // Left paddle scores
+      }
+    }
+  }
+
+  // Emit wall collision event
+  emitWallCollision() {
+    eventBus.emit("ball:wallCollision", {
+      ball: this,
+      x: this.x,
+      y: this.y,
+      type: "wall_hit",
+    });
+  }
+
+  // Trigger scoring event
+  triggerScore(scorer) {
+    eventBus.emit("ball:score", {
+      ball: this,
+      scorer: scorer,
+      points: 1,
+    });
+    this.disabled = true;
   }
 
   // Apply powerup effects
@@ -446,11 +436,12 @@ class Ball {
 
   // Check if ball is off screen
   isOffScreen() {
+    const buffer = this.radius * 2;
     return (
-      this.x < -this.radius ||
-      this.x > CONFIG.CANVAS_WIDTH + this.radius ||
-      this.y < -this.radius ||
-      this.y > CONFIG.CANVAS_HEIGHT + this.radius
+      this.x < -buffer ||
+      this.x > CONFIG.CANVAS_WIDTH + buffer ||
+      this.y < -buffer ||
+      this.y > CONFIG.CANVAS_HEIGHT + buffer
     );
   }
 

@@ -373,16 +373,32 @@ class Paddle {
   reflectBallWithShield(ball) {
     this.shieldReflections++;
 
-    // Reflect the ball back in the opposite direction
-    if (this.side === "left") {
-      ball.dx = Math.abs(ball.dx);
-    } else {
-      ball.dx = -Math.abs(ball.dx);
-    }
+    // Reflect the ball back in the opposite direction based on orientation
+    if (CONFIG.isVertical()) {
+      // Vertical mode: reflect vertically
+      if (this.side === "left") {
+        // Top paddle - reflect ball downward
+        ball.dy = Math.abs(ball.dy);
+      } else {
+        // Bottom paddle - reflect ball upward
+        ball.dy = -Math.abs(ball.dy);
+      }
 
-    // Add some randomness to the reflection
-    const randomAngle = (Math.random() - 0.5) * 0.4; // ±0.2 radians
-    ball.dy = Math.sin(randomAngle) * ball.getSpeed();
+      // Add some randomness to the horizontal reflection
+      const randomAngle = (Math.random() - 0.5) * 0.4; // ±0.2 radians
+      ball.dx = Math.sin(randomAngle) * ball.getSpeed();
+    } else {
+      // Horizontal mode: reflect horizontally
+      if (this.side === "left") {
+        ball.dx = Math.abs(ball.dx);
+      } else {
+        ball.dx = -Math.abs(ball.dx);
+      }
+
+      // Add some randomness to the vertical reflection
+      const randomAngle = (Math.random() - 0.5) * 0.4; // ±0.2 radians
+      ball.dy = Math.sin(randomAngle) * ball.getSpeed();
+    }
 
     // Remove shield if max reflections reached
     if (this.shieldReflections >= this.maxShieldReflections) {
@@ -407,23 +423,47 @@ class Paddle {
 
     // Check if ball is behind the paddle (shield reflection)
     if (this.hasShield && this.shieldReflections < this.maxShieldReflections) {
-      if (this.side === "left" && ball.x < paddleLeft) {
-        // Ball is behind left paddle - shield covers full table height
-        if (
-          ball.y + ball.radius > 0 &&
-          ball.y - ball.radius < CONFIG.CANVAS_HEIGHT
-        ) {
-          this.reflectBallWithShield(ball);
-          return true;
+      if (CONFIG.isVertical()) {
+        // Vertical mode: check if ball is above/below paddle
+        if (this.side === "left" && ball.y < paddleTop) {
+          // Ball is above top paddle - shield covers full table width
+          if (
+            ball.x + ball.radius > 0 &&
+            ball.x - ball.radius < CONFIG.CANVAS_WIDTH
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
+        } else if (this.side === "right" && ball.y > paddleBottom) {
+          // Ball is below bottom paddle - shield covers full table width
+          if (
+            ball.x + ball.radius > 0 &&
+            ball.x - ball.radius < CONFIG.CANVAS_WIDTH
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
         }
-      } else if (this.side === "right" && ball.x > paddleRight) {
-        // Ball is behind right paddle - shield covers full table height
-        if (
-          ball.y + ball.radius > 0 &&
-          ball.y - ball.radius < CONFIG.CANVAS_HEIGHT
-        ) {
-          this.reflectBallWithShield(ball);
-          return true;
+      } else {
+        // Horizontal mode: check if ball is left/right of paddle
+        if (this.side === "left" && ball.x < paddleLeft) {
+          // Ball is behind left paddle - shield covers full table height
+          if (
+            ball.y + ball.radius > 0 &&
+            ball.y - ball.radius < CONFIG.CANVAS_HEIGHT
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
+        } else if (this.side === "right" && ball.x > paddleRight) {
+          // Ball is behind right paddle - shield covers full table height
+          if (
+            ball.y + ball.radius > 0 &&
+            ball.y - ball.radius < CONFIG.CANVAS_HEIGHT
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
         }
       }
     }
@@ -444,24 +484,47 @@ class Paddle {
 
   // Render shield
   renderShield(ctx) {
-    const shieldOffset = this.side === "left" ? -15 : 15;
-    const shieldX = this.x + shieldOffset;
+    if (CONFIG.isVertical()) {
+      // Vertical mode: shield is horizontal (above/below paddle)
+      const shieldOffset = this.side === "left" ? -15 : 15;
+      const shieldY = this.y + shieldOffset;
 
-    // Shield background (semi-transparent) - covers full table height
-    ctx.fillStyle = "rgba(0, 150, 255, 0.3)";
-    ctx.fillRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
+      // Shield background (semi-transparent) - covers full table width
+      ctx.fillStyle = "rgba(0, 150, 255, 0.3)";
+      ctx.fillRect(0, shieldY, CONFIG.CANVAS_WIDTH, 10);
 
-    // Shield border - covers full table height
-    ctx.strokeStyle = "#0096ff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
+      // Shield border - covers full table width
+      ctx.strokeStyle = "#0096ff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, shieldY, CONFIG.CANVAS_WIDTH, 10);
 
-    // Shield energy effect - covers full table height
-    ctx.strokeStyle = "#00ffff";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-    ctx.strokeRect(shieldX - 1, -1, 12, CONFIG.CANVAS_HEIGHT + 2);
-    ctx.setLineDash([]);
+      // Shield energy effect - covers full table width
+      ctx.strokeStyle = "#00ffff";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(-1, shieldY - 1, CONFIG.CANVAS_WIDTH + 2, 12);
+      ctx.setLineDash([]);
+    } else {
+      // Horizontal mode: shield is vertical (left/right of paddle)
+      const shieldOffset = this.side === "left" ? -15 : 15;
+      const shieldX = this.x + shieldOffset;
+
+      // Shield background (semi-transparent) - covers full table height
+      ctx.fillStyle = "rgba(0, 150, 255, 0.3)";
+      ctx.fillRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
+
+      // Shield border - covers full table height
+      ctx.strokeStyle = "#0096ff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(shieldX, 0, 10, CONFIG.CANVAS_HEIGHT);
+
+      // Shield energy effect - covers full table height
+      ctx.strokeStyle = "#00ffff";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(shieldX - 1, -1, 12, CONFIG.CANVAS_HEIGHT + 2);
+      ctx.setLineDash([]);
+    }
   }
 
   // Render paddle with retro style

@@ -136,22 +136,24 @@ class PowerupSystem {
       if (!powerup.collected && !powerup.expired) {
         balls.forEach((ball) => {
           if (powerup.checkCollision(ball)) {
-            powerup.collect();
-            const centerPos = powerup.getCenterPosition();
+            // Only proceed if collection is successful (not already collected)
+            if (powerup.collect()) {
+              const centerPos = powerup.getCenterPosition();
 
-            // Emit powerup collected event
-            eventBus.emit("powerup:collected", {
-              powerup,
-              ball,
-              x: centerPos.x,
-              y: centerPos.y,
-              powerupType: powerup.type,
-            });
+              // Emit powerup collected event
+              eventBus.emit("powerup:collected", {
+                powerup,
+                ball,
+                x: centerPos.x,
+                y: centerPos.y,
+                powerupType: powerup.type,
+              });
 
-            // Show flash text for special powerups
-            this.showPowerupFlashText(powerup.type);
+              // Show flash text for special powerups
+              this.showPowerupFlashText(powerup.type);
 
-            collisions.push({ powerup, ball, index });
+              collisions.push({ powerup, ball, index });
+            }
           }
         });
       }
@@ -287,13 +289,7 @@ class PowerupSystem {
     const portalPair = new PortalPair(portal1Config, portal2Config, 10000);
     this.portals.push(portalPair);
 
-    // Remove portal pair when it expires
-    setTimeout(() => {
-      const index = this.portals.findIndex(
-        (pair) => pair.created === portalPair.created
-      );
-      if (index > -1) this.portals.splice(index, 1);
-    }, 10000);
+    // Portal will be automatically cleaned up by updatePortals() when shouldDestroy() returns true
   }
 
   // Apply random wall
@@ -303,14 +299,65 @@ class PowerupSystem {
     const width = 10 + Math.random() * 30;
     const height = 50 + Math.random() * 100;
 
-    const wall = new Wall(x, y, width, height, { lifetime: 5000 });
+    // Random chance for wall to be moving (60% chance)
+    const isMoving = Math.random() < 0.6;
+
+    let wallConfig = { lifetime: 5000 };
+
+    if (isMoving) {
+      // Choose random movement pattern
+      const patterns = [
+        "linear",
+        "oscillating",
+        "circular",
+        "figure8",
+        "zigzag",
+      ];
+      const movementPattern = randomChoice(patterns);
+
+      // Configure movement parameters based on pattern
+      wallConfig = {
+        ...wallConfig,
+        isMoving: true,
+        movementPattern: movementPattern,
+        movementSpeed: 1 + Math.random() * 2, // Speed between 1-3
+      };
+
+      // Pattern-specific configurations
+      switch (movementPattern) {
+        case "linear":
+          // Random direction for linear movement
+          const angle = Math.random() * Math.PI * 2;
+          wallConfig.movementDirection = {
+            x: Math.cos(angle),
+            y: Math.sin(angle),
+          };
+          break;
+
+        case "oscillating":
+          // Random axis for oscillation
+          wallConfig.movementDirection =
+            Math.random() < 0.5 ? { x: 1, y: 0 } : { x: 0, y: 1 };
+          wallConfig.oscillationRange = 50 + Math.random() * 100; // 50-150 pixel range
+          break;
+
+        case "circular":
+        case "figure8":
+          wallConfig.rotationRadius = 30 + Math.random() * 50; // 30-80 pixel radius
+          break;
+
+        case "zigzag":
+          // Random primary direction for zigzag
+          wallConfig.movementDirection =
+            Math.random() < 0.5 ? { x: 1, y: 0 } : { x: 0, y: 1 };
+          break;
+      }
+    }
+
+    const wall = new Wall(x, y, width, height, wallConfig);
     this.randomWalls.push(wall);
 
-    // Remove wall when it expires
-    setTimeout(() => {
-      const index = this.randomWalls.findIndex((w) => w.id === wall.id);
-      if (index > -1) this.randomWalls.splice(index, 1);
-    }, 5000);
+    // Wall will be automatically cleaned up by updateWalls() when shouldDestroy() returns true
   }
 
   // Apply shield powerup
@@ -404,11 +451,7 @@ class PowerupSystem {
 
     this.blackholes.push(blackhole);
 
-    // Remove blackhole when it expires
-    setTimeout(() => {
-      const index = this.blackholes.findIndex((bh) => bh.id === blackhole.id);
-      if (index > -1) this.blackholes.splice(index, 1);
-    }, CONFIG.BLACKHOLE.LIFETIME);
+    // Blackhole will be automatically cleaned up by updateBlackholes() when shouldDestroy() returns true
   }
 
   // Generate flash text colors from powerup configuration
@@ -474,7 +517,10 @@ class PowerupSystem {
         break;
 
       case "random_wall":
-        message = "WALL SPAWNED!";
+        // Check if the most recently created wall is moving
+        const latestWall = this.randomWalls[this.randomWalls.length - 1];
+        message =
+          latestWall && latestWall.isMoving ? "MOVING WALL!" : "WALL SPAWNED!";
         break;
 
       case "score_bonus":
@@ -579,10 +625,7 @@ class PowerupSystem {
       });
     }
 
-    // Remove effect after duration
-    setTimeout(() => {
-      this.removeEffect(effectId);
-    }, effect.duration);
+    // Effect will be automatically removed by cleanupExpiredEffects() when duration expires
   }
 
   // Remove effect

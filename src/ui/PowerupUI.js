@@ -52,6 +52,14 @@ class PowerupUI {
     if (this.settings.enabledPowerups.size === 0) {
       this.settings.enabledPowerups = new Set(Object.keys(POWERUP_CONFIG));
     }
+    // Remove powerups that are not in the POWERUP_CONFIG
+    else {
+      for (const powerup of this.settings.enabledPowerups) {
+        if (!POWERUP_CONFIG[powerup]) {
+          this.settings.enabledPowerups.delete(powerup);
+        }
+      }
+    }
   }
 
   saveSettings() {

@@ -46,7 +46,12 @@ class PhysicsSystem {
 
     balls.forEach((ball) => {
       powerups.forEach((powerup) => {
-        if (powerup.checkCollision(ball)) {
+        // Only check collision if powerup hasn't been collected or expired
+        if (
+          !powerup.collected &&
+          !powerup.expired &&
+          powerup.checkCollision(ball)
+        ) {
           collisions.push({ ball, powerup });
         }
       });

@@ -20,8 +20,8 @@ export const POWERUP_CONFIG = {
     emoji: "🔵",
     label: "Big Ball",
     effect: { ballSize: 1.5, duration: 8000 },
-    color: "#ff6600", // Orange - Bad effect (harder to avoid)
-    category: "detrimental",
+    color: "#00ff00",
+    category: "beneficial",
   },
   smaller_ball: {
     emoji: "🔹",
@@ -31,7 +31,7 @@ export const POWERUP_CONFIG = {
     category: "beneficial",
   },
   speed_up: {
-    emoji: "⚡",
+    emoji: "🚀",
     label: "Speed Up",
     effect: { ballSpeed: 1.3, duration: 6000 },
     color: "#ff2222", // Red - Bad effect (harder to react)
@@ -54,7 +54,7 @@ export const POWERUP_CONFIG = {
     category: "chaotic",
   },
   clone_ball: {
-    emoji: "🟢🟢",
+    emoji: "🦠",
     label: "Clone Ball",
     effect: { cloneBall: true, duration: 0 },
     color: "#aa44ff", // Purple - Chaotic effect (could help or hurt)

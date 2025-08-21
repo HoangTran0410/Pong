@@ -88,7 +88,7 @@ class FlashTextSystem {
 
   // Update positions of all flash texts in stack with smooth animations
   updateFlashTextStack() {
-    const STACK_SPACING = 80;
+    const STACK_SPACING = 50;
     const CENTER_Y = CONFIG.CANVAS_HEIGHT / 2;
 
     // Filter active flash texts and sort by creation time (oldest first)

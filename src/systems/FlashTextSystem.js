@@ -19,15 +19,20 @@ class FlashTextSystem {
 
   // Add flash text with stacking support and duplicate detection
   addFlashText(text, options = {}) {
-    // Check if there's an existing active FlashText with the same text
-    const existingFlashText = this.flashTexts.find(
-      (ft) => ft.isActive && ft.matchesText(text)
-    );
+    // Check if multiplier should be prevented
+    if (options.preventMultiplier) {
+      // Always create new FlashText, don't check for duplicates
+    } else {
+      // Check if there's an existing active FlashText with the same text
+      const existingFlashText = this.flashTexts.find(
+        (ft) => ft.isActive && ft.matchesText(text)
+      );
 
-    if (existingFlashText) {
-      // Increment multiplier instead of creating new FlashText
-      existingFlashText.incrementMultiplier();
-      return; // Don't create a new FlashText
+      if (existingFlashText) {
+        // Increment multiplier instead of creating new FlashText
+        existingFlashText.incrementMultiplier();
+        return; // Don't create a new FlashText
+      }
     }
 
     // No duplicate found, create new FlashText

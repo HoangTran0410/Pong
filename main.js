@@ -106,6 +106,9 @@ class PongApp {
     // Set powerup settings
     this.game.setPowerupSettings(powerupSettings);
 
+    // Update score display to show initial scores (0-0)
+    this.game.updateScoreDisplay();
+
     // Start game
     this.game.start();
   }

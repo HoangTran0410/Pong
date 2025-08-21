@@ -134,7 +134,7 @@ class PowerupSystem {
 
     this.powerups.forEach((powerup, index) => {
       if (!powerup.collected && !powerup.expired) {
-        balls.forEach((ball) => {
+        for (const ball of balls) {
           if (powerup.checkCollision(ball)) {
             // Only proceed if collection is successful (not already collected)
             if (powerup.collect()) {
@@ -153,14 +153,19 @@ class PowerupSystem {
               this.showPowerupFlashText(powerup.type);
 
               collisions.push({ powerup, ball, index });
+              // Break out of balls loop since powerup is now collected
+              break;
             }
           }
-        });
+        }
       }
     });
 
-    // Remove collected powerups
-    collisions.forEach(({ index }) => {
+    // Remove collected powerups (sort indices in descending order to avoid array shifting issues)
+    const sortedIndices = collisions
+      .map(({ index }) => index)
+      .sort((a, b) => b - a);
+    sortedIndices.forEach((index) => {
       this.powerups.splice(index, 1);
     });
 

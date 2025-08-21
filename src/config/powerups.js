@@ -111,6 +111,14 @@ export const POWERUP_CONFIG = {
     category: "chaotic",
     lifetime: 10000, // 10 seconds
   },
+  cage: {
+    emoji: "🔒",
+    label: "Cage",
+    effect: { cage: true, duration: 0 },
+    color: "#ff6600", // Orange - Trapping effect
+    category: "chaotic",
+    lifetime: 10000, // 10 seconds
+  },
   // orientation_flip: {
   //   emoji: "☝️",
   //   label: "Orientation Flip",

@@ -160,7 +160,7 @@ class PhysicsSystem {
       gameState.powerups || []
     );
 
-    // Check wall collisions if we have random walls
+    // Check wall collisions if we have random walls (includes cage walls)
     if (gameState.randomWalls && gameState.randomWalls.length > 0) {
       this.checkBallWallCollisions(gameState.balls, gameState.randomWalls);
     }

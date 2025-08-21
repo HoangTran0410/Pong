@@ -204,6 +204,9 @@ class PowerupSystem {
     if (effect.blackhole) {
       this.applyBlackhole();
     }
+    if (effect.cage) {
+      this.applyCage(ball);
+    }
     if (effect.orientationFlip) {
       this.applyOrientationFlip();
     }
@@ -390,6 +393,11 @@ class PowerupSystem {
     this.createBlackhole();
   }
 
+  // Apply cage powerup - creates 4 walls around ball position in rectangle shape
+  applyCage(ball) {
+    this.createCage(ball.x, ball.y, ball);
+  }
+
   // Apply orientation flip effect
   applyOrientationFlip() {
     // If flip is already active, cancel the existing timer
@@ -457,6 +465,62 @@ class PowerupSystem {
     this.blackholes.push(blackhole);
 
     // Blackhole will be automatically cleaned up by updateBlackholes() when shouldDestroy() returns true
+  }
+
+  // Create cage walls around a specific position in rectangle formation
+  createCage(centerX, centerY, ball) {
+    const cageSize = 100; // Size of the cage rectangle
+    const wallThickness = 10;
+    const wallLifetime = 2000;
+
+    // Define the 4 walls forming a rectangle around the ball
+    const walls = [
+      // Top wall
+      {
+        x: centerX - cageSize / 2,
+        y: centerY - cageSize / 2,
+        width: cageSize,
+        height: wallThickness,
+      },
+      // Bottom wall
+      {
+        x: centerX - cageSize / 2,
+        y: centerY + cageSize / 2 - wallThickness,
+        width: cageSize,
+        height: wallThickness,
+      },
+      // Left wall
+      {
+        x: centerX - cageSize / 2,
+        y: centerY - cageSize / 2,
+        width: wallThickness,
+        height: cageSize,
+      },
+      // Right wall
+      {
+        x: centerX + cageSize / 2 - wallThickness,
+        y: centerY - cageSize / 2,
+        width: wallThickness,
+        height: cageSize,
+      },
+    ];
+
+    // Create cage walls and add to randomWalls array
+    walls.forEach((wallConfig) => {
+      const wall = new Wall(
+        wallConfig.x,
+        wallConfig.y,
+        wallConfig.width,
+        wallConfig.height,
+        {
+          lifetime: wallLifetime,
+          color: "#ff6600", // Orange color for cage walls
+          isCageWall: true, // Mark as cage wall for special handling
+          cagedBall: ball, // Reference to the ball that was caged
+        }
+      );
+      this.randomWalls.push(wall);
+    });
   }
 
   // Generate flash text colors from powerup configuration

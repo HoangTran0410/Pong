@@ -586,6 +586,119 @@ body::before {
   transform: translateX(18px);
 }
 
+/* Credits Configuration */
+.credits-content {
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.credits-section {
+  border: 1px solid #00ff00;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  border-radius: 0;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.credits-section:hover {
+  background: rgba(0, 255, 0, 0.05);
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+}
+
+.credits-section h3 {
+  color: #00ff00;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 5px #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.developer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.developer-name a {
+  font-size: 1rem;
+  color: #00ffff;
+  text-shadow: 0 0 8px #00ffff;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.developer-role {
+  font-size: 0.7rem;
+  color: #ffff00;
+  text-shadow: 0 0 5px #ffff00;
+  opacity: 0.9;
+}
+
+.github-link a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  color: #00ff00;
+  text-decoration: none;
+  font-size: 0.8rem;
+  padding: 0.8rem 1.5rem;
+  border: 2px solid #00ff00;
+  background: transparent;
+  transition: all 0.3s ease;
+  text-shadow: 0 0 3px #00ff00;
+  font-family: "Press Start 2P", monospace;
+}
+
+.github-link a:hover {
+  background: #00ff00;
+  color: #000;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+  text-shadow: none;
+  transform: scale(1.05);
+}
+
+.github-icon {
+  font-size: 1.2rem;
+  animation: pulse 2s infinite;
+}
+
+.github-text {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tech-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.8rem;
+}
+
+.tech-item {
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid #00ff00;
+  padding: 0.6rem;
+  font-size: 0.6rem;
+  color: #00ff00;
+  text-shadow: 0 0 3px #00ff00;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tech-item:hover {
+  background: rgba(0, 255, 0, 0.2);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  transform: translateY(-2px);
+}
+
 /* Removed internal scrollbar - using body scroll instead */
 
 /* Removed menu content scrollbar - using body scroll instead */
@@ -661,6 +774,32 @@ body::before {
   .test-sound-btn {
     font-size: 0.5rem;
     padding: 0.4rem 0.8rem;
+  }
+
+  /* Credits responsive adjustments */
+  .credits-content {
+    gap: 1.5rem;
+    padding: 0.5rem;
+  }
+
+  .credits-section {
+    padding: 1rem;
+  }
+
+  .github-link a {
+    font-size: 0.6rem;
+    padding: 0.6rem 1rem;
+    gap: 0.6rem;
+  }
+
+  .tech-list {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .tech-item {
+    padding: 0.5rem;
+    font-size: 0.5rem;
   }
 }
 

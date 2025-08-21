@@ -490,105 +490,29 @@ class PowerupSystem {
   // Show flash text for special powerups
   showPowerupFlashText(powerupType) {
     const config = POWERUP_CONFIG[powerupType];
-    if (!config) return;
+    if (!config?.label) return;
 
-    let message = "";
+    let message = config.label.toUpperCase() + "!";
 
     // Generate colors from powerup config
     const colors = this.generateFlashTextColors(config);
-    let options = {
-      duration: 1500,
-      color: colors.color,
-      glowColor: colors.glowColor,
-      shadowColor: colors.shadowColor,
-    };
-
-    // Special messages for different powerup types
-    switch (powerupType) {
-      case "swap_score":
-        // Don't show flash text here as it's handled in Game.swapScores()
-        return;
-
-      case "clone_ball":
-        message = "CLONE BALL!";
-        break;
-
-      case "portal":
-        message = "PORTAL OPENED!";
-        break;
-
-      case "shield":
-        message = "SHIELD ACTIVE!";
-        break;
-
-      case "random_wall":
-        // Check if the most recently created wall is moving
-        const latestWall = this.randomWalls[this.randomWalls.length - 1];
-        message =
-          latestWall && latestWall.isMoving ? "MOVING WALL!" : "WALL SPAWNED!";
-        break;
-
-      case "score_bonus":
-        message = "+5 POINTS!";
-        break;
-
-      case "score_penalty":
-        message = "-3 POINTS!";
-        break;
-
-      case "bigger_paddle":
-        message = "BIG PADDLE!";
-        break;
-
-      case "smaller_paddle":
-        message = "SMALL PADDLE!";
-        break;
-
-      case "speed_up":
-        message = "SPEED UP!";
-        break;
-
-      case "speed_down":
-        message = "SLOW DOWN!";
-        break;
-
-      case "bigger_ball":
-        message = "BIG BALL!";
-        break;
-
-      case "smaller_ball":
-        message = "SMALL BALL!";
-        break;
-
-      case "random_direction":
-        message = "RANDOM DIR!";
-        break;
-
-      case "blackhole":
-        message = "BLACKHOLE!";
-        break;
-
-      default:
-        // For other powerups, show the label
-        if (config.label && config.label !== "undefined") {
-          message = config.label.toUpperCase() + "!";
-        } else {
-          return; // Don't show flash text for basic powerups
-        }
-        break;
-    }
 
     if (message) {
       eventBus.emit("game:showFlashText", {
         text: message,
-        options: options,
+        options: {
+          duration: 1500,
+          color: colors.color,
+          glowColor: colors.glowColor,
+          shadowColor: colors.shadowColor,
+        },
       });
     }
   }
 
   // Apply timed effect
   applyTimedEffect(type, effect, ball) {
-    const effectId = `${type}_${Date.now()}`;
+    const effectId = generateId(type);
 
     // Determine which object gets the effect
     if (effect.ballSize || effect.ballSpeed) {

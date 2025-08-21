@@ -3,6 +3,7 @@ import PowerupUI from "./src/ui/PowerupUI.js";
 import AudioUI from "./src/ui/AudioUI.js";
 import eventBus from "./src/core/EventBus.js";
 import soundSystem from "./src/systems/SoundSystem.js";
+import { CONFIG } from "./src/config/game.js";
 
 // Main Application Entry Point
 class PongApp {
@@ -96,9 +97,20 @@ class PongApp {
     // Switch to game screen
     this.showScreen("game");
 
-    // Initialize game
     const canvas = document.getElementById("gameCanvas");
-    this.game = new Game(canvas, orientation);
+
+    // If game already exists, reset it instead of creating new instance
+    if (this.game) {
+      CONFIG.setOrientation(orientation);
+
+      this.game.stop();
+      this.game.reset();
+      this.game.handleOrientationChange();
+      this.game.resizeCanvas();
+    } else {
+      // Create new game instance only if none exists
+      this.game = new Game(canvas, orientation);
+    }
 
     // Set paddle modes
     this.game.setPaddleModes(leftMode, rightMode);
@@ -117,7 +129,7 @@ class PongApp {
   showMenu() {
     if (this.game) {
       this.game.stop();
-      this.game = null;
+      // Keep game instance for reuse instead of setting to null
     }
     this.showScreen("menu");
   }

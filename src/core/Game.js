@@ -137,11 +137,6 @@ class Game {
         data.originalOrientation
       );
     });
-
-    // Flash text events
-    eventBus.subscribe("game:showFlashText", (data) => {
-      this.flashTextSystem.addFlashText(data.text, data.options);
-    });
   }
 
   // Setup input handlers
@@ -423,14 +418,6 @@ class Game {
     this.rightScore = temp;
 
     this.updateScoreDisplay();
-
-    // Show flash text notification
-    this.flashTextSystem.addFlashText("SCORES SWAPPED!", {
-      color: "#ff6b6b",
-      glowColor: "#ff9999",
-      shadowColor: "#441111",
-      duration: 2500,
-    });
   }
 
   // Update score display
@@ -444,8 +431,6 @@ class Game {
 
   // Handle goal notifications
   handleGoalNotification(scorer, points) {
-    console.log("handleGoalNotification", scorer, points);
-
     let message = "";
     let options = {
       duration: 2500,
@@ -518,7 +503,7 @@ class Game {
   }
 
   // Handle orientation change from powerup
-  handleOrientationChange(newOrientation, originalOrientation) {
+  handleOrientationChange() {
     // Update paddle dimensions and positions
     this.leftPaddle.width = CONFIG.getPaddleWidth();
     this.leftPaddle.height = CONFIG.getPaddleHeight();
@@ -555,15 +540,6 @@ class Game {
         ball.resetVelocity();
       }
     });
-
-    // Show orientation change notification
-    // this.flashTextSystem.addFlashText(`${newOrientation.toUpperCase()} MODE!`, {
-    //   color: "#ff9900",
-    //   glowColor: "#ffbb44",
-    //   shadowColor: "#664400",
-    //   duration: 2000,
-    //   fontSize: 28,
-    // });
   }
 
   // Set powerup settings

@@ -146,9 +146,11 @@ class FlashTextSystem {
     });
 
     // Remove finished flash texts
-    this.flashTexts = this.flashTexts.filter(
-      (flashText) => !flashText.isFinished()
-    );
+    for (let i = this.flashTexts.length - 1; i >= 0; i--) {
+      if (this.flashTexts[i].isFinished()) {
+        this.flashTexts.splice(i, 1);
+      }
+    }
 
     // Store count after cleanup
     const afterCount = this.flashTexts.filter((ft) => ft.isActive).length;

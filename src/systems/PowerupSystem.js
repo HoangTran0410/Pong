@@ -302,7 +302,7 @@ class PowerupSystem {
     // Random chance for wall to be moving (60% chance)
     const isMoving = Math.random() < 0.6;
 
-    let wallConfig = { lifetime: 5000 };
+    let wallConfig = { lifetime: 10000 };
 
     if (isMoving) {
       // Choose random movement pattern

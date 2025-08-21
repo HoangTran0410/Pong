@@ -6,7 +6,6 @@ class PowerupUI {
     this.settings = {
       powerupsEnabled: true,
       enabledPowerups: new Set(),
-      collapsed: true,
     };
 
     this.elements = {
@@ -14,7 +13,6 @@ class PowerupUI {
       toggleAllPowerups: document.getElementById("toggleAllPowerups"),
       powerupList: document.getElementById("powerupList"),
       powerupConfig: document.getElementById("powerupConfig"),
-      powerupConfigHeader: document.getElementById("powerupConfigHeader"),
     };
 
     this.init();
@@ -42,7 +40,6 @@ class PowerupUI {
         const parsed = JSON.parse(savedSettings);
         this.settings.powerupsEnabled = parsed.powerupsEnabled !== false;
         this.settings.enabledPowerups = new Set(parsed.enabledPowerups || []);
-        this.settings.collapsed = parsed.collapsed || false;
       } catch (e) {
         console.warn("Failed to load powerup settings:", e);
       }
@@ -66,12 +63,16 @@ class PowerupUI {
     const settingsToSave = {
       powerupsEnabled: this.settings.powerupsEnabled,
       enabledPowerups: Array.from(this.settings.enabledPowerups),
-      collapsed: this.settings.collapsed,
     };
     localStorage.setItem("powerupSettings", JSON.stringify(settingsToSave));
   }
 
   generatePowerupList() {
+    if (!this.elements.powerupList) {
+      console.warn("PowerupList element not found");
+      return;
+    }
+
     this.elements.powerupList.innerHTML = "";
 
     Object.entries(POWERUP_CONFIG).forEach(([type, config]) => {
@@ -104,52 +105,51 @@ class PowerupUI {
   }
 
   setupEventListeners() {
-    // Collapsible header toggle
-    this.elements.powerupConfigHeader.addEventListener("click", () => {
-      this.settings.collapsed = !this.settings.collapsed;
-      this.updateUI();
-      this.saveSettings();
-    });
-
     // Master powerup toggle
-    this.elements.powerupsEnabled.addEventListener("change", (e) => {
-      this.settings.powerupsEnabled = e.target.checked;
-      this.updateUI();
-      this.saveSettings();
-    });
+    if (this.elements.powerupsEnabled) {
+      this.elements.powerupsEnabled.addEventListener("change", (e) => {
+        this.settings.powerupsEnabled = e.target.checked;
+        this.updateUI();
+        this.saveSettings();
+      });
+    }
 
     // Toggle all powerups button
-    this.elements.toggleAllPowerups.addEventListener("click", () => {
-      const allEnabled =
-        this.settings.enabledPowerups.size ===
-        Object.keys(POWERUP_CONFIG).length;
+    if (this.elements.toggleAllPowerups) {
+      this.elements.toggleAllPowerups.addEventListener("click", () => {
+        const allEnabled =
+          this.settings.enabledPowerups.size ===
+          Object.keys(POWERUP_CONFIG).length;
 
-      if (allEnabled) {
-        // Disable all
-        this.settings.enabledPowerups.clear();
-        this.elements.toggleAllPowerups.textContent = "All";
-      } else {
-        // Enable all
-        this.settings.enabledPowerups = new Set(Object.keys(POWERUP_CONFIG));
-        this.elements.toggleAllPowerups.textContent = "None";
-      }
+        if (allEnabled) {
+          // Disable all
+          this.settings.enabledPowerups.clear();
+          this.elements.toggleAllPowerups.textContent = "All";
+        } else {
+          // Enable all
+          this.settings.enabledPowerups = new Set(Object.keys(POWERUP_CONFIG));
+          this.elements.toggleAllPowerups.textContent = "None";
+        }
 
-      this.updateUI();
-      this.saveSettings();
-    });
+        this.updateUI();
+        this.saveSettings();
+      });
+    }
 
     // Individual powerup toggles
-    this.elements.powerupList.addEventListener("click", (e) => {
-      const toggle = e.target.closest(".powerup-small-toggle");
-      const item = e.target.closest(".powerup-item");
+    if (this.elements.powerupList) {
+      this.elements.powerupList.addEventListener("click", (e) => {
+        const toggle = e.target.closest(".powerup-small-toggle");
+        const item = e.target.closest(".powerup-item");
 
-      if (toggle || item) {
-        const powerupType = toggle?.dataset.type || item?.dataset.powerupType;
-        if (powerupType) {
-          this.togglePowerup(powerupType);
+        if (toggle || item) {
+          const powerupType = toggle?.dataset.type || item?.dataset.powerupType;
+          if (powerupType) {
+            this.togglePowerup(powerupType);
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   togglePowerup(powerupType) {
@@ -164,47 +164,47 @@ class PowerupUI {
   }
 
   updateUI() {
-    // Update collapsed state
-    if (this.settings.collapsed) {
-      this.elements.powerupConfig.classList.add("collapsed");
-    } else {
-      this.elements.powerupConfig.classList.remove("collapsed");
+    // Update master toggle
+    if (this.elements.powerupsEnabled) {
+      this.elements.powerupsEnabled.checked = this.settings.powerupsEnabled;
     }
 
-    // Update master toggle
-    this.elements.powerupsEnabled.checked = this.settings.powerupsEnabled;
-
     // Update toggle all button
-    const allEnabled =
-      this.settings.enabledPowerups.size === Object.keys(POWERUP_CONFIG).length;
-    this.elements.toggleAllPowerups.textContent = allEnabled ? "None" : "All";
+    if (this.elements.toggleAllPowerups) {
+      const allEnabled =
+        this.settings.enabledPowerups.size ===
+        Object.keys(POWERUP_CONFIG).length;
+      this.elements.toggleAllPowerups.textContent = allEnabled ? "None" : "All";
+    }
 
     // Update individual powerup items
-    this.elements.powerupList
-      .querySelectorAll(".powerup-item")
-      .forEach((item) => {
-        const powerupType = item.dataset.powerupType;
-        const toggle = item.querySelector(".powerup-small-toggle");
-        const isEnabled = this.settings.enabledPowerups.has(powerupType);
+    if (this.elements.powerupList) {
+      this.elements.powerupList
+        .querySelectorAll(".powerup-item")
+        .forEach((item) => {
+          const powerupType = item.dataset.powerupType;
+          const toggle = item.querySelector(".powerup-small-toggle");
+          const isEnabled = this.settings.enabledPowerups.has(powerupType);
 
-        // Update item appearance
-        if (isEnabled) {
-          item.classList.remove("disabled");
-          toggle.classList.add("enabled");
-        } else {
-          item.classList.add("disabled");
-          toggle.classList.remove("enabled");
-        }
+          // Update item appearance
+          if (isEnabled) {
+            item.classList.remove("disabled");
+            toggle.classList.add("enabled");
+          } else {
+            item.classList.add("disabled");
+            toggle.classList.remove("enabled");
+          }
 
-        // Disable all items if master toggle is off
-        if (!this.settings.powerupsEnabled) {
-          item.style.opacity = "0.3";
-          item.style.pointerEvents = "none";
-        } else {
-          item.style.opacity = "";
-          item.style.pointerEvents = "";
-        }
-      });
+          // Disable all items if master toggle is off
+          if (!this.settings.powerupsEnabled) {
+            item.style.opacity = "0.3";
+            item.style.pointerEvents = "none";
+          } else {
+            item.style.opacity = "";
+            item.style.pointerEvents = "";
+          }
+        });
+    }
 
     // Update powerup controls container
     const powerupControls = document.querySelector(".powerup-controls");

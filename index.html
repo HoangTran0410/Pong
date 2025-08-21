@@ -11,6 +11,9 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <!-- zzFX Audio Library -->
+    <script src="libs/zzfx.js"></script>
+    <script src="libs/zzfxm.js"></script>
   </head>
   <body>
     <div id="gameContainer">
@@ -18,60 +21,110 @@
       <div id="menuScreen" class="screen active">
         <h1>RETRO PONG</h1>
         <div class="menu-content">
-          <!-- Game Orientation Selection -->
-          <div class="orientation-selection">
-            <h3>Game Orientation:</h3>
-            <select id="gameOrientation">
-              <option value="horizontal">Horizontal (Left/Right)</option>
-              <option value="vertical">Vertical (Top/Bottom)</option>
-            </select>
-          </div>
-
-          <!-- Paddle Controls -->
-          <div class="paddle-controls">
-            <div class="paddle-selection">
-              <h3 id="leftPaddleLabel">Left Paddle:</h3>
-              <select id="leftPaddleMode">
-                <option value="ai">AI</option>
-                <option value="mouse">Mouse</option>
-                <option value="keyboard" id="leftKeyboardOption">
-                  Keyboard (W/S)
-                </option>
-              </select>
+          <!-- Settings Tabs -->
+          <div class="settings-container">
+            <div class="tab-navigation">
+              <button class="tab-button active" data-tab="general">
+                General
+              </button>
+              <button class="tab-button" data-tab="audio">Audio</button>
+              <button class="tab-button" data-tab="powerups">Powerups</button>
             </div>
 
-            <div class="paddle-selection">
-              <h3 id="rightPaddleLabel">Right Paddle:</h3>
-              <select id="rightPaddleMode">
-                <option value="ai">AI</option>
-                <option value="mouse">Mouse</option>
-                <option value="keyboard" id="rightKeyboardOption">
-                  Keyboard (Up/Down)
-                </option>
-              </select>
-            </div>
-          </div>
+            <div class="tab-content">
+              <!-- General Settings Tab -->
+              <div id="general-tab" class="tab-panel active">
+                <div class="general-settings">
+                  <!-- Game Orientation Selection -->
+                  <div class="orientation-selection">
+                    <h3>Game Orientation:</h3>
+                    <select id="gameOrientation">
+                      <option value="horizontal">
+                        Horizontal (Left/Right)
+                      </option>
+                      <option value="vertical">Vertical (Top/Bottom)</option>
+                    </select>
+                  </div>
 
-          <!-- Collapsible Powerup Configuration -->
-          <div class="powerup-config" id="powerupConfig">
-            <div class="powerup-config-header" id="powerupConfigHeader">
-              <h3>Powerup Settings</h3>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div class="powerup-controls">
-              <div class="powerup-header">
-                <label class="powerup-toggle">
-                  <input type="checkbox" id="powerupsEnabled" checked />
-                  <span class="toggle-slider"></span>
-                  <span class="toggle-label">Enable Powerups</span>
-                </label>
-                <button id="toggleAllPowerups" class="toggle-all-btn">
-                  All
-                </button>
+                  <!-- Paddle Controls -->
+                  <div class="paddle-controls">
+                    <div class="paddle-selection">
+                      <h3 id="leftPaddleLabel">Left Paddle:</h3>
+                      <select id="leftPaddleMode">
+                        <option value="ai">AI</option>
+                        <option value="mouse">Mouse</option>
+                        <option value="keyboard" id="leftKeyboardOption">
+                          Keyboard (W/S)
+                        </option>
+                      </select>
+                    </div>
+
+                    <div class="paddle-selection">
+                      <h3 id="rightPaddleLabel">Right Paddle:</h3>
+                      <select id="rightPaddleMode">
+                        <option value="ai">AI</option>
+                        <option value="mouse">Mouse</option>
+                        <option value="keyboard" id="rightKeyboardOption">
+                          Keyboard (Up/Down)
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div id="powerupList" class="powerup-list">
-                <!-- Powerup toggles will be generated here -->
+              <!-- Audio Settings Tab -->
+              <div id="audio-tab" class="tab-panel">
+                <div class="audio-config">
+                  <div class="audio-controls">
+                    <label class="audio-toggle">
+                      <input type="checkbox" id="soundEnabled" checked />
+                      <span class="toggle-slider"></span>
+                      <span class="toggle-label">Enable Sound Effects</span>
+                    </label>
+                    <label class="audio-toggle">
+                      <input type="checkbox" id="musicEnabled" checked />
+                      <span class="toggle-slider"></span>
+                      <span class="toggle-label">Enable Background Music</span>
+                    </label>
+                    <div class="volume-control">
+                      <label for="masterVolume">Master Volume:</label>
+                      <input
+                        type="range"
+                        id="masterVolume"
+                        min="0"
+                        max="100"
+                        value="30"
+                      />
+                      <span id="masterVolumeValue">30%</span>
+                    </div>
+                    <button id="testSoundButton" class="test-sound-btn">
+                      Test Sound
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Powerup Settings Tab -->
+              <div id="powerups-tab" class="tab-panel">
+                <div class="powerup-config" id="powerupConfig">
+                  <div class="powerup-controls">
+                    <div class="powerup-header">
+                      <label class="powerup-toggle">
+                        <input type="checkbox" id="powerupsEnabled" checked />
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Enable Powerups</span>
+                      </label>
+                      <button id="toggleAllPowerups" class="toggle-all-btn">
+                        All
+                      </button>
+                    </div>
+
+                    <div id="powerupList" class="powerup-list">
+                      <!-- Powerup toggles will be generated here -->
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

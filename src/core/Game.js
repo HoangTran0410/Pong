@@ -3,6 +3,7 @@ import PhysicsSystem from "../systems/PhysicsSystem.js";
 import RenderSystem from "../systems/RenderSystem.js";
 import PowerupSystem from "../systems/PowerupSystem.js";
 import FlashTextSystem from "../systems/FlashTextSystem.js";
+import soundSystem from "../systems/SoundSystem.js";
 import Paddle from "../entities/Paddle.js";
 import Ball from "../entities/Ball.js";
 import eventBus from "./EventBus.js";
@@ -45,6 +46,7 @@ class Game {
     this.renderSystem = new RenderSystem(canvas, this.ctx);
     this.powerupSystem = new PowerupSystem();
     this.flashTextSystem = new FlashTextSystem();
+    this.soundSystem = soundSystem;
 
     // Resize handling
     this.resizeTimeout = null;
@@ -134,6 +136,11 @@ class Game {
         data.newOrientation,
         data.originalOrientation
       );
+    });
+
+    // Flash text events
+    eventBus.subscribe("game:showFlashText", (data) => {
+      this.flashTextSystem.addFlashText(data.text, data.options);
     });
   }
 
@@ -245,6 +252,9 @@ class Game {
     // Cache timer element
     this.timerElement = document.querySelector(".timer");
 
+    // Start background music
+    this.soundSystem.startBackgroundMusic();
+
     // Show game start notification
     this.flashTextSystem.addFlashText("GAME START!", {
       color: "#00ff00",
@@ -277,6 +287,8 @@ class Game {
   // Stop game
   stop() {
     this.isRunning = false;
+    // Stop background music when game stops
+    this.soundSystem.stopBackgroundMusic();
   }
 
   // Main game loop

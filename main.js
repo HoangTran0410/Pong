@@ -1,5 +1,8 @@
 import Game from "./src/core/Game.js";
 import PowerupUI from "./src/ui/PowerupUI.js";
+import AudioUI from "./src/ui/AudioUI.js";
+import eventBus from "./src/core/EventBus.js";
+import soundSystem from "./src/systems/SoundSystem.js";
 
 // Main Application Entry Point
 class PongApp {
@@ -7,14 +10,19 @@ class PongApp {
     this.game = null;
     this.currentScreen = "menu";
     this.powerupUI = null;
+    this.audioUI = null;
 
     this.init();
   }
 
   // Initialize application
   init() {
-    // Initialize PowerupUI
+    // Initialize UI components
     this.powerupUI = new PowerupUI();
+    this.audioUI = new AudioUI();
+
+    // Initialize sound system with saved settings
+    this.audioUI.initializeSoundSystem();
 
     this.setupEventListeners();
     this.setupOrientationHandler();
@@ -26,20 +34,42 @@ class PongApp {
     // Start button
     const startButton = document.getElementById("startButton");
     if (startButton) {
-      startButton.addEventListener("click", () => this.startGame());
+      startButton.addEventListener("click", () => {
+        // Initialize audio on first user interaction
+        soundSystem.initializeAudio();
+        eventBus.emit("menu:click");
+        this.startGame();
+      });
     }
 
     // Pause button
     const pauseButton = document.getElementById("pauseButton");
     if (pauseButton) {
-      pauseButton.addEventListener("click", () => this.togglePause());
+      pauseButton.addEventListener("click", () => {
+        soundSystem.initializeAudio();
+        eventBus.emit("menu:click");
+        this.togglePause();
+      });
     }
 
     // Menu button
     const menuButton = document.getElementById("menuButton");
     if (menuButton) {
-      menuButton.addEventListener("click", () => this.showMenu());
+      menuButton.addEventListener("click", () => {
+        soundSystem.initializeAudio();
+        eventBus.emit("menu:click");
+        this.showMenu();
+      });
     }
+
+    // Initialize audio on any user interaction
+    document.addEventListener(
+      "click",
+      () => {
+        soundSystem.initializeAudio();
+      },
+      { once: true }
+    );
 
     // Keyboard shortcuts
     document.addEventListener("keydown", (e) => {

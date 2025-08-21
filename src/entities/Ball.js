@@ -212,7 +212,6 @@ class Ball {
         this.triggerScore("left"); // Top paddle scores
       }
     } else {
-      console.log(this.x + scoreBuffer);
       // Horizontal mode: score on left/right
       if (this.x + scoreBuffer < 0) {
         this.triggerScore("right"); // Right paddle scores

@@ -17,6 +17,7 @@ class BallTrail {
     if (!this.points.length) return;
     ctx.save();
     ctx.fillStyle = color;
+
     for (let i = 0; i < this.points.length; i++) {
       const p = this.points[i];
       const alpha = ((i + 1) / this.points.length) * opacity;

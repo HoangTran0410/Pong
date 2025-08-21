@@ -30,21 +30,22 @@ class SoundSystem {
         scoreChange:[1.0, , 440, 0.01, 0.05, 0.1, 1, , , , , , , , , , , 0.6],
 
         // Powerup sounds
-        powerupCollect:[1.2, , 700, 0.01, 0.1, 0.2, 1, , , , , , , , , , , 0.8],
+        powerupCollect: [1,,10,.05,,.11,4,.9,,-5,-164,.12,.02,,,,,.55,,,-1272], //[1.2, , 700, 0.01, 0.1, 0.2, 1, , , , , , , , , , , 0.8],
         powerupSpawn:  [1.0, , 330, 0.01, 0.05, 0.15, 0, , , , , , , , , , , 0.5],
 
         // Special powerups
-        shieldActivate:[1.0, , 392, 0.01, 0.1, 0.2, 2, , , , , , , , , , , 0.7],
-        portalOpen:    [1.0, , 220, 0.01, 0.15, 0.25, 3, , , , , , , , , , , 0.6],
+        shieldActivate:[1,,30,0.2,0.5,0.8,,1,,1,,,0.4,0.05,0.15,0.25,,0.01,0.35,0.02],
+        portalOpen:    [1.8,,578,.03,.08,.27,1,3.4,,-156,,,,.3,,,.05,.67,.03],
+        portalTeleport:[1,,465,.03,.05,.06,,.9,,191,,,,,,,,.65,.02],
         blackhole:     [1.0, , 100, 0.02, 0.2, 0.3, 2, , , , , , , , , , , 0.5],
-        clone:         [1.2, , 880, 0.01, 0.05, 0.1, 1, , , , , , , , , , , 0.6],
+        clone:         [1.2,,491,.02,.03,.28,,1.4,2,,119,.1,,.5,18,,.02,.86,.04,,-1053], // [1.2, , 880, 0.01, 0.05, 0.1, 1, , , , , , , , , , , 0.6],
 
         // UI & special
-        swapScore:     [1.0, , 311, 0.01, 0.08, 0.15, 1, , , , , , , , , , , 0.6],
+        swapScore:     [.3,,398,.03,.12,.08,3,.8,-4,22,,,,,,,,.75,.09,,327],
         orientationFlip:[1.0, , 466, 0.01, 0.08, 0.15, 1, , , , , , , , , , , 0.6],
 
         // Walls
-        wallSpawn:     [1.0, , 277, 0.01, 0.05, 0.1, 1, , , , , , , , , , , 0.6],
+        wallSpawn:     [.9,,346,.01,.09,.2,1,.4,-1,-155,180,.09,,,,.1,.07,.96,.05,,-1048],
 
         // Menu
         menuSelect:    [0.8, , 587, 0.01, 0.03, 0.05, 1, , , , , , , , , , , 0.4],
@@ -73,6 +74,10 @@ class SoundSystem {
       this.playPowerupSound(data.powerupType);
     });
 
+    eventBus.subscribe("ball:portalTeleport", () => {
+      this.playSound("portalTeleport");
+    });
+
     // Game events
     eventBus.subscribe("game:scoreChange", () => {
       this.playSound("scoreChange");
@@ -97,11 +102,6 @@ class SoundSystem {
 
     eventBus.subscribe("paddle:shieldReflection", () => {
       this.playSound("shieldActivate", 0.7); // Slightly quieter for reflection
-    });
-
-    // Special powerup events - listen for flash text to know when special powerups activate
-    eventBus.subscribe("game:showFlashText", (data) => {
-      this.playFlashTextSound(data.text);
     });
 
     // Menu events (for future UI sounds)
@@ -174,22 +174,6 @@ class SoundSystem {
       setTimeout(() => {
         this.playSound(specificSounds[powerupType], 0.8);
       }, 100);
-    }
-  }
-
-  // Play sounds based on flash text messages
-  playFlashTextSound(text) {
-    const textSoundMap = {
-      "PORTAL OPENED!": "portalOpen",
-      "BLACKHOLE!": "blackhole",
-      "MOVING WALL!": "wallSpawn",
-      "WALL SPAWNED!": "wallSpawn",
-      "SHIELD ACTIVE!": "shieldActivate",
-    };
-
-    const soundName = textSoundMap[text];
-    if (soundName) {
-      this.playSound(soundName, 0.6);
     }
   }
 

@@ -1,3 +1,38 @@
+:root {
+  /* Primary Colors */
+  --color-black: #000;
+  --color-primary-green: #00ff00;
+  --color-cyan: #00ffff;
+  --color-yellow: #ffff00;
+  --color-red: #ff4444;
+  --color-light-green: #00ff44;
+  --color-orange: #ffaa00;
+
+  /* Green Variations */
+  --color-dark-gray: #333;
+  --color-very-dark-green: #001100;
+  --color-darker-green: #002200;
+  --color-medium-green: #00aa00;
+
+  /* Rgba Variations */
+  --color-primary-green-02: rgba(0, 255, 0, 0.02);
+  --color-primary-green-005: rgba(0, 255, 0, 0.05);
+  --color-primary-green-01: rgba(0, 255, 0, 0.1);
+  --color-primary-green-02-alt: rgba(0, 255, 0, 0.2);
+  --color-primary-green-03: rgba(0, 255, 0, 0.3);
+  --color-primary-green-04: rgba(0, 255, 0, 0.4);
+  --color-primary-green-05: rgba(0, 255, 0, 0.5);
+  --color-primary-green-06: rgba(0, 255, 0, 0.6);
+  --color-primary-green-08: rgba(0, 255, 0, 0.8);
+  --color-cyan-05: rgba(0, 255, 255, 0.5);
+  --color-black-03: rgba(0, 0, 0, 0.3);
+  --color-black-05: rgba(0, 0, 0, 0.5);
+  --color-black-07: rgba(0, 0, 0, 0.7);
+  --color-black-08: rgba(0, 0, 0, 0.8);
+  --color-gray-03: rgba(50, 50, 50, 0.3);
+  --color-gray-04: rgba(50, 50, 50, 0.4);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,11 +41,12 @@
 
 body {
   font-family: "Press Start 2P", monospace;
-  background: #000;
-  color: #00ff00;
+  background: var(--color-black);
+  color: var(--color-primary-green);
   overflow-x: hidden;
   position: relative;
   min-height: 100vh;
+  user-select: none;
 }
 
 /* CRT Scanlines Effect */
@@ -21,7 +57,10 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(transparent 50%, rgba(0, 255, 0, 0.02) 50%);
+  background: linear-gradient(
+    transparent 50%,
+    var(--color-primary-green-02) 50%
+  );
   background-size: 100% 4px;
   pointer-events: none;
   z-index: 1000;
@@ -55,7 +94,8 @@ body::before {
 #menuScreen h1 {
   font-size: 3rem;
   margin-bottom: 3rem;
-  text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
+  text-shadow: 0 0 3px var(--color-primary-green),
+    0 0 6px var(--color-primary-green), 0 0 9px var(--color-primary-green);
   animation: glow 2s ease-in-out infinite alternate;
   letter-spacing: 2px;
   text-align: center;
@@ -63,10 +103,12 @@ body::before {
 
 @keyframes glow {
   from {
-    text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
+    text-shadow: 0 0 3px var(--color-primary-green),
+      0 0 6px var(--color-primary-green), 0 0 9px var(--color-primary-green);
   }
   to {
-    text-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00, 0 0 40px #00ff00;
+    text-shadow: 0 0 6px var(--color-primary-green),
+      0 0 12px var(--color-primary-green), 0 0 18px var(--color-primary-green);
   }
 }
 
@@ -86,16 +128,16 @@ body::before {
 }
 
 .orientation-selection h3 {
-  color: #00ff00;
+  color: var(--color-primary-green);
   margin-bottom: 0.75rem;
   font-size: 0.9rem;
-  text-shadow: 0 0 10px #00ff00;
+  text-shadow: 0 0 10px var(--color-primary-green);
 }
 
 .orientation-selection select {
-  background: #001100;
-  color: #00ff00;
-  border: 2px solid #00aa00;
+  background: var(--color-very-dark-green);
+  color: var(--color-primary-green);
+  border: 2px solid var(--color-medium-green);
   padding: 0.75rem 1rem;
   font-family: "Press Start 2P", monospace;
   font-size: 0.7rem;
@@ -106,15 +148,15 @@ body::before {
 }
 
 .orientation-selection select:hover {
-  border-color: #00ff00;
-  background: #002200;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+  border-color: var(--color-primary-green);
+  background: var(--color-darker-green);
+  box-shadow: 0 0 15px var(--color-primary-green-03);
 }
 
 .orientation-selection select:focus {
   outline: none;
-  border-color: #00ffff;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 20px var(--color-cyan-05);
 }
 
 /* Horizontal paddle selection */
@@ -135,27 +177,27 @@ body::before {
 .paddle-selection h3 {
   margin-bottom: 0.8rem;
   font-size: 0.9rem;
-  text-shadow: 0 0 5px #00ff00;
+  text-shadow: 0 0 5px var(--color-primary-green);
 }
 
 .paddle-selection select {
   padding: 0.6rem 1rem;
   font-size: 0.7rem;
   font-family: "Press Start 2P", monospace;
-  border: 2px solid #00ff00;
+  border: 2px solid var(--color-primary-green);
   border-radius: 0;
-  background: #000;
-  color: #00ff00;
+  background: var(--color-black);
+  color: var(--color-primary-green);
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  box-shadow: 0 0 10px var(--color-primary-green-05);
   width: 100%;
 }
 
 .paddle-selection select:hover {
-  background: #00ff00;
-  color: #000;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+  background: var(--color-primary-green);
+  color: var(--color-black);
+  box-shadow: 0 0 20px var(--color-primary-green-08);
 }
 
 .start-btn {
@@ -163,20 +205,20 @@ body::before {
   font-size: 1.2rem;
   font-family: "Press Start 2P", monospace;
   font-weight: bold;
-  background: #000;
-  color: #00ff00;
-  border: 3px solid #00ff00;
+  background: var(--color-black);
+  color: var(--color-primary-green);
+  border: 3px solid var(--color-primary-green);
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+  box-shadow: 0 0 20px var(--color-primary-green-05);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .start-btn:hover {
-  background: #00ff00;
-  color: #000;
-  box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+  background: var(--color-primary-green);
+  color: var(--color-black);
+  box-shadow: 0 0 30px var(--color-primary-green-08);
   transform: scale(1.05);
 }
 
@@ -192,37 +234,37 @@ body::before {
   display: flex;
   justify-content: center;
   margin-bottom: 1rem;
-  border-bottom: 2px solid #00ff00;
+  border-bottom: 2px solid var(--color-primary-green);
 }
 
 .tab-button {
   background: transparent;
   border: none;
-  color: #00ff00;
+  color: var(--color-primary-green);
   font-family: "Press Start 2P", monospace;
   font-size: 0.7rem;
   padding: 0.8rem 1.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-shadow: 0 0 3px #00ff00;
+  text-shadow: 0 0 3px var(--color-primary-green);
   border-bottom: 3px solid transparent;
 }
 
 .tab-button:hover {
-  background: rgba(0, 255, 0, 0.1);
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  background: var(--color-primary-green-01);
+  box-shadow: 0 0 10px var(--color-primary-green-03);
 }
 
 .tab-button.active {
-  background: rgba(0, 255, 0, 0.2);
-  border-bottom-color: #00ff00;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+  background: var(--color-primary-green-02-alt);
+  border-bottom-color: var(--color-primary-green);
+  box-shadow: 0 0 15px var(--color-primary-green-05);
 }
 
 .tab-content {
-  border: 2px solid #00ff00;
-  background: rgba(0, 0, 0, 0.7);
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+  border: 2px solid var(--color-primary-green);
+  background: var(--color-black-07);
+  box-shadow: 0 0 15px var(--color-primary-green-03);
   min-height: 300px;
 }
 
@@ -263,7 +305,7 @@ body::before {
 .audio-config h3 {
   margin: 0 0 1rem 0;
   font-size: 1rem;
-  text-shadow: 0 0 5px #00ff00;
+  text-shadow: 0 0 5px var(--color-primary-green);
 }
 
 .audio-controls {
@@ -288,8 +330,8 @@ body::before {
   position: relative;
   width: 50px;
   height: 24px;
-  background-color: #333;
-  border: 2px solid #00ff00;
+  background-color: var(--color-dark-gray);
+  border: 2px solid var(--color-primary-green);
   border-radius: 0;
   margin-right: 1rem;
   transition: background-color 0.3s;
@@ -301,15 +343,15 @@ body::before {
   position: absolute;
   width: 16px;
   height: 16px;
-  background-color: #00ff00;
+  background-color: var(--color-primary-green);
   top: 2px;
   left: 2px;
   transition: transform 0.3s;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  box-shadow: 0 0 5px var(--color-primary-green-05);
 }
 
 .audio-toggle input[type="checkbox"]:checked + .toggle-slider {
-  background-color: #001100;
+  background-color: var(--color-very-dark-green);
 }
 
 .audio-toggle input[type="checkbox"]:checked + .toggle-slider::before {
@@ -332,10 +374,10 @@ body::before {
 }
 
 .volume-control input[type="range"]::-webkit-slider-track {
-  background: #333;
+  background: var(--color-dark-gray);
   height: 6px;
-  border: 1px solid #00ff00;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+  border: 1px solid var(--color-primary-green);
+  box-shadow: 0 0 5px var(--color-primary-green-03);
 }
 
 .volume-control input[type="range"]::-webkit-slider-thumb {
@@ -343,53 +385,53 @@ body::before {
   appearance: none;
   height: 16px;
   width: 16px;
-  background: #00ff00;
+  background: var(--color-primary-green);
   cursor: pointer;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  box-shadow: 0 0 5px var(--color-primary-green-05);
 }
 
 .volume-control input[type="range"]::-moz-range-track {
-  background: #333;
+  background: var(--color-dark-gray);
   height: 6px;
-  border: 1px solid #00ff00;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+  border: 1px solid var(--color-primary-green);
+  box-shadow: 0 0 5px var(--color-primary-green-03);
 }
 
 .volume-control input[type="range"]::-moz-range-thumb {
   height: 16px;
   width: 16px;
-  background: #00ff00;
+  background: var(--color-primary-green);
   cursor: pointer;
   border: none;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  box-shadow: 0 0 5px var(--color-primary-green-05);
 }
 
 #masterVolumeValue {
   min-width: 40px;
-  color: #00ff00;
-  text-shadow: 0 0 3px #00ff00;
+  color: var(--color-primary-green);
+  text-shadow: 0 0 3px var(--color-primary-green);
 }
 
 .test-sound-btn {
   padding: 0.5rem 1rem;
   background: transparent;
-  border: 2px solid #00ff00;
-  color: #00ff00;
+  border: 2px solid var(--color-primary-green);
+  color: var(--color-primary-green);
   font-family: "Press Start 2P", monospace;
   font-size: 0.6rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-shadow: 0 0 3px #00ff00;
+  text-shadow: 0 0 3px var(--color-primary-green);
   margin-top: 0.5rem;
 }
 
 .test-sound-btn:hover {
-  background: rgba(0, 255, 0, 0.1);
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  background: var(--color-primary-green-01);
+  box-shadow: 0 0 10px var(--color-primary-green-03);
 }
 
 .test-sound-btn:active {
-  background: rgba(0, 255, 0, 0.2);
+  background: var(--color-primary-green-02-alt);
   transform: scale(0.98);
 }
 
@@ -411,7 +453,7 @@ body::before {
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #00ff00;
+  border-bottom: 1px solid var(--color-primary-green);
 }
 
 /* Toggle Switch */
@@ -430,8 +472,8 @@ body::before {
   position: relative;
   width: 50px;
   height: 24px;
-  background-color: #333;
-  border: 2px solid #00ff00;
+  background-color: var(--color-dark-gray);
+  border: 2px solid var(--color-primary-green);
   border-radius: 0;
   margin-right: 1rem;
   transition: background-color 0.3s;
@@ -442,15 +484,15 @@ body::before {
   position: absolute;
   width: 16px;
   height: 16px;
-  background-color: #00ff00;
+  background-color: var(--color-primary-green);
   top: 2px;
   left: 2px;
   transition: transform 0.3s;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  box-shadow: 0 0 5px var(--color-primary-green-05);
 }
 
 .powerup-toggle input[type="checkbox"]:checked + .toggle-slider {
-  background-color: #001100;
+  background-color: var(--color-very-dark-green);
 }
 
 .powerup-toggle input[type="checkbox"]:checked + .toggle-slider::before {
@@ -458,26 +500,26 @@ body::before {
 }
 
 .toggle-label {
-  color: #00ff00;
-  text-shadow: 0 0 3px #00ff00;
+  color: var(--color-primary-green);
+  text-shadow: 0 0 3px var(--color-primary-green);
 }
 
 .toggle-all-btn {
   padding: 0.5rem 1rem;
   font-size: 0.7rem;
   font-family: "Press Start 2P", monospace;
-  background: #000;
-  color: #00ff00;
-  border: 2px solid #00ff00;
+  background: var(--color-black);
+  color: var(--color-primary-green);
+  border: 2px solid var(--color-primary-green);
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  box-shadow: 0 0 10px var(--color-primary-green-03);
 }
 
 .toggle-all-btn:hover {
-  background: #00ff00;
-  color: #000;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+  background: var(--color-primary-green);
+  color: var(--color-black);
+  box-shadow: 0 0 15px var(--color-primary-green-06);
 }
 
 /* Powerup List */
@@ -492,24 +534,24 @@ body::before {
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem;
-  border: 1px solid #00ff00;
-  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-primary-green);
+  background: var(--color-black-05);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .powerup-item:hover {
-  background: rgba(0, 255, 0, 0.1);
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  background: var(--color-primary-green-01);
+  box-shadow: 0 0 10px var(--color-primary-green-03);
 }
 
 .powerup-item.disabled {
   opacity: 0.5;
-  background: rgba(50, 50, 50, 0.3);
+  background: var(--color-gray-03);
 }
 
 .powerup-item.disabled:hover {
-  background: rgba(50, 50, 50, 0.4);
+  background: var(--color-gray-04);
   box-shadow: none;
 }
 
@@ -533,8 +575,8 @@ body::before {
 
 .powerup-name {
   font-size: 0.7rem;
-  color: #00ff00;
-  text-shadow: 0 0 3px #00ff00;
+  color: var(--color-primary-green);
+  text-shadow: 0 0 3px var(--color-primary-green);
 }
 
 .powerup-category {
@@ -544,15 +586,15 @@ body::before {
 }
 
 .powerup-category.beneficial {
-  color: #00ff44;
+  color: var(--color-light-green);
 }
 
 .powerup-category.detrimental {
-  color: #ff4444;
+  color: var(--color-red);
 }
 
 .powerup-category.chaotic {
-  color: #ffaa00;
+  color: var(--color-orange);
 }
 
 /* Small toggle for individual powerups */
@@ -560,8 +602,8 @@ body::before {
   position: relative;
   width: 36px;
   height: 18px;
-  background-color: #333;
-  border: 1px solid #00ff00;
+  background-color: var(--color-dark-gray);
+  border: 1px solid var(--color-primary-green);
   cursor: pointer;
   transition: background-color 0.3s;
 }
@@ -571,15 +613,15 @@ body::before {
   position: absolute;
   width: 12px;
   height: 12px;
-  background-color: #00ff00;
+  background-color: var(--color-primary-green);
   top: 2px;
   left: 2px;
   transition: transform 0.3s;
-  box-shadow: 0 0 3px rgba(0, 255, 0, 0.5);
+  box-shadow: 0 0 3px var(--color-primary-green-05);
 }
 
 .powerup-small-toggle.enabled {
-  background-color: #001100;
+  background-color: var(--color-very-dark-green);
 }
 
 .powerup-small-toggle.enabled::before {
@@ -597,24 +639,24 @@ body::before {
 }
 
 .credits-section {
-  border: 1px solid #00ff00;
-  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-primary-green);
+  background: var(--color-black-03);
   padding: 1.5rem;
   border-radius: 0;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+  box-shadow: 0 0 10px var(--color-primary-green-02-alt);
   transition: all 0.3s ease;
 }
 
 .credits-section:hover {
-  background: rgba(0, 255, 0, 0.05);
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+  background: var(--color-primary-green-005);
+  box-shadow: 0 0 15px var(--color-primary-green-04);
 }
 
 .credits-section h3 {
-  color: #00ff00;
+  color: var(--color-primary-green);
   font-size: 0.9rem;
   margin-bottom: 1rem;
-  text-shadow: 0 0 5px #00ff00;
+  text-shadow: 0 0 5px var(--color-primary-green);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -628,16 +670,16 @@ body::before {
 
 .developer-name a {
   font-size: 1rem;
-  color: #00ffff;
-  text-shadow: 0 0 8px #00ffff;
+  color: var(--color-cyan);
+  text-shadow: 0 0 8px var(--color-cyan);
   font-weight: bold;
   text-decoration: none;
 }
 
 .developer-role {
   font-size: 0.7rem;
-  color: #ffff00;
-  text-shadow: 0 0 5px #ffff00;
+  color: var(--color-yellow);
+  text-shadow: 0 0 5px var(--color-yellow);
   opacity: 0.9;
 }
 
@@ -646,21 +688,21 @@ body::before {
   align-items: center;
   justify-content: center;
   gap: 0.8rem;
-  color: #00ff00;
+  color: var(--color-primary-green);
   text-decoration: none;
   font-size: 0.8rem;
   padding: 0.8rem 1.5rem;
-  border: 2px solid #00ff00;
+  border: 2px solid var(--color-primary-green);
   background: transparent;
   transition: all 0.3s ease;
-  text-shadow: 0 0 3px #00ff00;
+  text-shadow: 0 0 3px var(--color-primary-green);
   font-family: "Press Start 2P", monospace;
 }
 
 .github-link a:hover {
-  background: #00ff00;
-  color: #000;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+  background: var(--color-primary-green);
+  color: var(--color-black);
+  box-shadow: 0 0 20px var(--color-primary-green-06);
   text-shadow: none;
   transform: scale(1.05);
 }
@@ -682,20 +724,20 @@ body::before {
 }
 
 .tech-item {
-  background: rgba(0, 255, 0, 0.1);
-  border: 1px solid #00ff00;
+  background: var(--color-primary-green-01);
+  border: 1px solid var(--color-primary-green);
   padding: 0.6rem;
   font-size: 0.6rem;
-  color: #00ff00;
-  text-shadow: 0 0 3px #00ff00;
+  color: var(--color-primary-green);
+  text-shadow: 0 0 3px var(--color-primary-green);
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .tech-item:hover {
-  background: rgba(0, 255, 0, 0.2);
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  background: var(--color-primary-green-02-alt);
+  box-shadow: 0 0 10px var(--color-primary-green-03);
   transform: translateY(-2px);
 }
 
@@ -810,6 +852,7 @@ body::before {
   width: 100%;
   height: 100vh;
   overflow: hidden; /* Game screen should not scroll */
+  position: relative;
 }
 
 .game-header {
@@ -819,10 +862,10 @@ body::before {
   width: 100%;
   max-width: 1200px;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #00ff00;
+  background: var(--color-black-08);
+  border: 2px solid var(--color-primary-green);
   border-radius: 0;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+  box-shadow: 0 0 20px var(--color-primary-green-03);
 }
 
 .score {
@@ -830,14 +873,14 @@ body::before {
   font-weight: bold;
   min-width: 80px;
   text-align: center;
-  text-shadow: 0 0 10px #00ffff;
-  color: #00ffff;
+  text-shadow: 0 0 10px var(--color-cyan);
+  color: var(--color-cyan);
 }
 
 .timer {
   font-size: 1rem;
-  color: #ffff00;
-  text-shadow: 0 0 10px #ffff00;
+  color: var(--color-yellow);
+  text-shadow: 0 0 10px var(--color-yellow);
 }
 
 #gameCanvas {
@@ -845,10 +888,12 @@ body::before {
   height: 100%;
   max-width: 100vw;
   max-height: 70vh;
-  border: 3px solid #00ff00;
+  border: 3px solid var(--color-primary-green);
+  position: relative;
+  z-index: 2;
   border-radius: 0;
-  background: #000;
-  box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+  background: var(--color-black);
+  box-shadow: 0 0 30px var(--color-primary-green-05);
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -867,9 +912,9 @@ body::before {
   padding: 0.8rem 1.5rem;
   font-size: 0.8rem;
   font-family: "Press Start 2P", monospace;
-  background: #000;
-  color: #00ff00;
-  border: 2px solid #00ff00;
+  background: var(--color-black);
+  color: var(--color-primary-green);
+  border: 2px solid var(--color-primary-green);
   border-radius: 0;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -878,9 +923,9 @@ body::before {
 }
 
 .game-controls button:hover {
-  background: #00ff00;
-  color: #000;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+  background: var(--color-primary-green);
+  color: var(--color-black);
+  box-shadow: 0 0 20px var(--color-primary-green-06);
 }
 
 /* Powerup Effects */
@@ -895,15 +940,15 @@ body::before {
 @keyframes pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 10px #ffff00;
+    box-shadow: 0 0 10px var(--color-yellow);
   }
   50% {
     transform: scale(1.2);
-    box-shadow: 0 0 20px #ffff00;
+    box-shadow: 0 0 20px var(--color-yellow);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 10px #ffff00;
+    box-shadow: 0 0 10px var(--color-yellow);
   }
 }
 

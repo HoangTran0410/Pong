@@ -28,14 +28,16 @@ class Portal extends GameObject {
   }
 
   // Update portal state
-  update(deltaTime) {
-    super.update(deltaTime);
+  update(deltaTime = 16, gameState = null) {
+    super.update(deltaTime, gameState);
 
     // Check if portal should expire
     const age = Date.now() - this.startTime;
     if (age >= this.lifetime) {
       this.destroy();
     }
+
+    return null;
   }
 
   // Check if ball collides with this portal
@@ -293,8 +295,8 @@ export class PortalPair {
   }
 
   // Check if pair should be destroyed
-  shouldDestroy() {
-    return this.portal1.shouldDestroy() || this.portal2.shouldDestroy();
+  shouldRemove() {
+    return this.portal1.shouldRemove() || this.portal2.shouldRemove();
   }
 
   // Destroy both portals

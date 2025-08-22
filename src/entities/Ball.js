@@ -1,16 +1,20 @@
 import { CONFIG } from "../config/game.js";
-import BallTrail from "./BallTrail.js";
+import GameObject from "./GameObject.js";
 import eventBus from "../core/EventBus.js";
 import { generateId, clamp } from "../utils/index.js";
 
 // Ball Entity - Self-contained ball object with physics and rendering
-class Ball {
+class Ball extends GameObject {
   constructor(x, y, id = null) {
-    this.id = id || generateId("ball");
-    this.x = x;
-    this.y = y;
+    super(x, y, "ball");
+    if (id) this.id = id; // Override if specific ID provided
+
     this.radius = CONFIG.BALL_SIZE;
     this.baseRadius = CONFIG.BALL_SIZE;
+
+    // Set collision properties
+    this.collidable = true;
+    this.collisionRadius = this.radius;
 
     // Set initial velocity based on orientation
     if (CONFIG.isVertical()) {
@@ -34,8 +38,8 @@ class Ball {
     this.baseSpeed = CONFIG.BALL_SPEED;
     this.currentSpeedMultiplier = 1;
 
-    // Retro trail helper
-    this.trail = new BallTrail();
+    // Retro trail (merged from BallTrail class)
+    this.trailPoints = [];
 
     // Portal cooldown to prevent infinite loops
     this.portalCooldown = 0;
@@ -139,7 +143,15 @@ class Ball {
   }
 
   // Update ball position and physics
-  update() {
+  update(deltaTime = 16, gameState = null) {
+    super.update(deltaTime, gameState);
+
+    // Check if disabled (scored)
+    if (this.disabled) {
+      this.markForRemoval();
+      return null;
+    }
+
     // Ensure minimum speed to prevent ball from getting stuck
     const currentSpeed = this.getSpeed();
     if (currentSpeed < CONFIG.BALL_SPEED * 0.5) {
@@ -149,18 +161,23 @@ class Ball {
     this.x += this.dx;
     this.y += this.dy;
 
+    // Update collision radius to match current size
+    this.collisionRadius = this.radius;
+
     // Check wall collisions
     this.checkWallCollision();
 
     // Record position for retro trail
     if (CONFIG.BALL_TRAIL && CONFIG.BALL_TRAIL.ENABLED) {
-      this.trail.push(this.x, this.y, this.radius, CONFIG.BALL_TRAIL.LENGTH);
+      this.addTrailPoint(this.x, this.y, this.radius, CONFIG.BALL_TRAIL.LENGTH);
     }
 
     // Update portal cooldown
     if (this.portalCooldown > 0) {
-      this.portalCooldown -= 16; // Assuming ~60fps (16ms per frame)
+      this.portalCooldown -= deltaTime;
     }
+
+    return null; // Return collision data if any
   }
 
   // Check collision with walls
@@ -285,6 +302,70 @@ class Ball {
   removeEffect(type) {
     this.effects.delete(type);
     this.applyEffects();
+  }
+
+  // Handle collision with another object
+  onCollision(other, collisionType = "default") {
+    switch (other.type) {
+      case "paddle":
+        return this.handlePaddleCollision(other);
+      case "powerup":
+        // Powerup collision handled by powerup system
+        return false;
+      case "wall":
+        return this.handleWallCollision(other);
+      case "blackhole":
+        // Blackhole interaction handled by blackhole
+        return false;
+      case "portal":
+        // Portal interaction handled by portal
+        return false;
+      default:
+        return false;
+    }
+  }
+
+  // Handle wall collision (for random walls from powerups)
+  handleWallCollision(wall) {
+    if (!wall.active) return false;
+
+    // Compute penetration depth to each side
+    const overlapLeft = this.x + this.radius - wall.x;
+    const overlapRight = wall.x + wall.width - (this.x - this.radius);
+    const overlapTop = this.y + this.radius - wall.y;
+    const overlapBottom = wall.y + wall.height - (this.y - this.radius);
+
+    const minOverlapX = Math.min(overlapLeft, overlapRight);
+    const minOverlapY = Math.min(overlapTop, overlapBottom);
+
+    if (minOverlapX < minOverlapY) {
+      // Resolve along X axis
+      if (overlapLeft < overlapRight) {
+        this.x = wall.x - this.radius;
+      } else {
+        this.x = wall.x + wall.width + this.radius;
+      }
+      this.dx = -this.dx;
+    } else {
+      // Resolve along Y axis
+      if (overlapTop < overlapBottom) {
+        this.y = wall.y - this.radius;
+      } else {
+        this.y = wall.y + wall.height + this.radius;
+      }
+      this.dy = -this.dy;
+    }
+
+    // Emit wall hit event
+    eventBus.emit("ball:wallCollision", {
+      ball: this,
+      wall: wall,
+      x: this.x,
+      y: this.y,
+      type: "wall_hit",
+    });
+
+    return true; // Collision was handled
   }
 
   // Handle paddle collision
@@ -430,7 +511,7 @@ class Ball {
     this.portalCooldown = 0;
 
     // Clear trail
-    this.trail.clear();
+    this.clearTrail();
   }
 
   // Check if ball is off screen
@@ -448,7 +529,7 @@ class Ball {
   render(ctx) {
     // Retro square trail behind the ball
     if (CONFIG.BALL_TRAIL && CONFIG.BALL_TRAIL.ENABLED) {
-      this.trail.render(
+      this.renderTrail(
         ctx,
         CONFIG.COLORS.BALL_TRAIL,
         CONFIG.BALL_TRAIL.OPACITY
@@ -498,6 +579,37 @@ class Ball {
     });
 
     return clone;
+  }
+
+  // Trail methods (merged from BallTrail class)
+  addTrailPoint(x, y, radius, maxLength) {
+    this.trailPoints.push({ x, y, r: radius });
+    if (this.trailPoints.length > maxLength) {
+      this.trailPoints.shift();
+    }
+  }
+
+  clearTrail() {
+    this.trailPoints = [];
+  }
+
+  renderTrail(ctx, color, opacity) {
+    if (!this.trailPoints.length) return;
+
+    ctx.save();
+    ctx.fillStyle = color;
+
+    for (let i = 0; i < this.trailPoints.length; i++) {
+      const p = this.trailPoints[i];
+      const alpha = ((i + 1) / this.trailPoints.length) * opacity;
+      ctx.globalAlpha = alpha;
+      const size = Math.max(2, p.r * 2);
+      const x = Math.round(p.x - size / 2);
+      const y = Math.round(p.y - size / 2);
+      ctx.fillRect(x, y, size, size);
+    }
+
+    ctx.restore();
   }
 }
 

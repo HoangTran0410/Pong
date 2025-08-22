@@ -39,8 +39,8 @@ class Wall extends GameObject {
   }
 
   // Update wall state
-  update(deltaTime) {
-    super.update(deltaTime);
+  update(deltaTime = 16, gameState = null) {
+    super.update(deltaTime, gameState);
 
     // Check if wall should expire
     const age = Date.now() - this.startTime;

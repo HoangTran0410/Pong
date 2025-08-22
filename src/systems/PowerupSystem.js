@@ -1,6 +1,6 @@
 import { CONFIG } from "../config/game.js";
 import { POWERUP_CONFIG } from "../config/powerups.js";
-import Powerup from "../entities/Powerup.js";
+import PowerupFactory from "../entities/powerups/PowerupFactory.js";
 import Blackhole from "../entities/Blackhole.js";
 import Wall from "../entities/Wall.js";
 import { PortalPair } from "../entities/Portal.js";
@@ -30,7 +30,7 @@ class PowerupSystem {
     // Powerup settings
     this.powerupSettings = {
       powerupsEnabled: true,
-      enabledPowerups: Object.keys(POWERUP_CONFIG),
+      enabledPowerups: PowerupFactory.getAvailableTypes(),
     };
 
     this.setupEventListeners();
@@ -39,7 +39,8 @@ class PowerupSystem {
   setupEventListeners() {
     // Listen for powerup collection events
     eventBus.subscribe("powerup:collected", (data) => {
-      this.applyPowerupEffect(data.powerup, data.ball);
+      // Powerup effects are now handled by the powerup instances themselves
+      // This event is mainly for tracking/statistics
     });
   }
 
@@ -110,7 +111,7 @@ class PowerupSystem {
 
       // Only spawn if we found a non-overlapping position or hit max attempts
       // (still spawn at max attempts to avoid permanently blocking spawns)
-      const powerup = new Powerup(x, y, type);
+      const powerup = PowerupFactory.createPowerup(type, x, y);
       this.powerups.push(powerup);
     }
   }
@@ -297,7 +298,7 @@ class PowerupSystem {
     const portalPair = new PortalPair(portal1Config, portal2Config, 10000);
     this.portals.push(portalPair);
 
-    // Portal will be automatically cleaned up by updatePortals() when shouldDestroy() returns true
+    // Portal will be automatically cleaned up by updatePortals() when shouldRemove() returns true
   }
 
   // Apply random wall
@@ -365,7 +366,7 @@ class PowerupSystem {
     const wall = new Wall(x, y, width, height, wallConfig);
     this.randomWalls.push(wall);
 
-    // Wall will be automatically cleaned up by updateWalls() when shouldDestroy() returns true
+    // Wall will be automatically cleaned up by updateWalls() when shouldRemove() returns true
   }
 
   // Apply shield powerup
@@ -464,7 +465,7 @@ class PowerupSystem {
 
     this.blackholes.push(blackhole);
 
-    // Blackhole will be automatically cleaned up by updateBlackholes() when shouldDestroy() returns true
+    // Blackhole will be automatically cleaned up by updateBlackholes() when shouldRemove() returns true
   }
 
   // Create cage walls around a specific position in rectangle formation
@@ -668,7 +669,7 @@ class PowerupSystem {
       });
 
       // Remove expired blackholes
-      if (blackhole.shouldDestroy()) {
+      if (blackhole.shouldRemove()) {
         this.blackholes.splice(index, 1);
       }
     });
@@ -678,7 +679,7 @@ class PowerupSystem {
   updateWalls() {
     this.randomWalls.forEach((wall, index) => {
       wall.update();
-      if (wall.shouldDestroy()) {
+      if (wall.shouldRemove()) {
         this.randomWalls.splice(index, 1);
       }
     });
@@ -688,7 +689,7 @@ class PowerupSystem {
   updatePortals() {
     this.portals.forEach((portalPair, index) => {
       portalPair.update();
-      if (portalPair.shouldDestroy()) {
+      if (portalPair.shouldRemove()) {
         this.portals.splice(index, 1);
       }
     });
@@ -699,7 +700,7 @@ class PowerupSystem {
     // Update each powerup and remove expired ones
     this.powerups.forEach((powerup, index) => {
       powerup.update();
-      if (powerup.shouldDestroy()) {
+      if (powerup.shouldRemove()) {
         this.powerups.splice(index, 1);
       }
     });

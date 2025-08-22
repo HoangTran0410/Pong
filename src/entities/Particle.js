@@ -1,12 +1,12 @@
 import { PARTICLE_CONFIG } from "../config/particles.js";
+import GameObject from "./GameObject.js";
 
 // Particle Entity - Individual particle for visual effects
-class Particle {
+class Particle extends GameObject {
   constructor(x, y, type = "sparkle") {
-    this.x = x;
-    this.y = y;
-    this.type = type;
+    super(x, y, "particle");
 
+    this.particleType = type; // Renamed to avoid conflict with GameObject.type
     const config = PARTICLE_CONFIG[type] || PARTICLE_CONFIG.sparkle;
 
     // Set properties from config
@@ -25,7 +25,9 @@ class Particle {
     this.friction = 0.98;
   }
 
-  update() {
+  update(deltaTime = 16, gameState = null) {
+    super.update(deltaTime, gameState);
+
     // Apply gravity
     this.vy += this.gravity;
 
@@ -39,10 +41,17 @@ class Particle {
 
     // Decrease life
     this.life--;
+
+    // Mark for removal when dead
+    if (this.isDead()) {
+      this.markForRemoval();
+    }
+
+    return null;
   }
 
   render(ctx) {
-    if (this.life <= 0) return;
+    if (this.life <= 0 || this.toRemove) return;
 
     const alpha = this.life / this.maxLife;
 
@@ -123,6 +132,11 @@ class Particle {
 
   isDead() {
     return this.life <= 0;
+  }
+
+  // Override shouldRemove to include particle-specific conditions
+  shouldRemove() {
+    return super.shouldRemove() || this.isDead();
   }
 }
 

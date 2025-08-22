@@ -1,8 +1,7 @@
 import { CONFIG } from "../config/game.js";
-import PhysicsSystem from "../systems/PhysicsSystem.js";
-import RenderSystem from "../systems/RenderSystem.js";
+import CollisionSystem from "../systems/CollisionSystem.js";
 import PowerupSystem from "../systems/PowerupSystem.js";
-import FlashTextSystem from "../systems/FlashTextSystem.js";
+import FlashTextOverlay from "../ui/FlashTextOverlay.js";
 import soundSystem from "../systems/SoundSystem.js";
 import Paddle from "../entities/Paddle.js";
 import Ball from "../entities/Ball.js";
@@ -36,17 +35,19 @@ class Game {
     this.pointerXLeft = null;
     this.pointerXRight = null;
 
-    // Game entities
+    // Centralized game objects management
+    this.gameObjects = []; // All game objects in one array
     this.leftPaddle = null;
     this.rightPaddle = null;
-    this.balls = [];
 
     // Systems
-    this.physicsSystem = new PhysicsSystem();
-    this.renderSystem = new RenderSystem(canvas, this.ctx);
+    this.collisionSystem = new CollisionSystem();
     this.powerupSystem = new PowerupSystem();
-    this.flashTextSystem = new FlashTextSystem();
+    this.flashTextOverlay = new FlashTextOverlay();
     this.soundSystem = soundSystem;
+
+    // Add flash text overlay to game objects for centralized management
+    this.addGameObject(this.flashTextOverlay);
 
     // Resize handling
     this.resizeTimeout = null;
@@ -65,11 +66,16 @@ class Game {
     const rightPos = CONFIG.getRightPaddlePosition();
 
     this.leftPaddle = new Paddle(leftPos.x, leftPos.y, "left", "ai");
-
     this.rightPaddle = new Paddle(rightPos.x, rightPos.y, "right", "ai");
 
     // Create initial ball
-    this.balls = [new Ball(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2)];
+    const initialBall = new Ball(
+      CONFIG.CANVAS_WIDTH / 2,
+      CONFIG.CANVAS_HEIGHT / 2
+    );
+
+    // Add all game objects to centralized array
+    this.gameObjects = [this.leftPaddle, this.rightPaddle, initialBall];
 
     // Setup event listeners
     this.setupEventListeners();
@@ -87,7 +93,12 @@ class Game {
 
     // Ball spawning (from clone powerup)
     eventBus.subscribe("game:ballSpawned", (data) => {
-      this.balls.push(data.ball);
+      this.addGameObject(data.ball);
+    });
+
+    // Generic object spawning (for powerup-created objects)
+    eventBus.subscribe("game:objectSpawned", (data) => {
+      this.addGameObject(data.object);
     });
 
     // Score changes from powerups
@@ -124,7 +135,7 @@ class Game {
 
     // Ball effects
     eventBus.subscribe("ball:effectRemoved", (data) => {
-      const ball = this.balls.find((b) => b.id === data.ballId);
+      const ball = this.getBalls().find((b) => b.id === data.ballId);
       if (ball) {
         ball.removeEffect(data.type);
       }
@@ -216,7 +227,7 @@ class Game {
         this.rightPaddle.y = rightPos.y;
 
         // Reposition balls to center
-        this.balls.forEach((ball) => {
+        this.getBalls().forEach((ball) => {
           ball.x = CONFIG.CANVAS_WIDTH / 2;
           ball.y = CONFIG.CANVAS_HEIGHT / 2;
         });
@@ -251,7 +262,7 @@ class Game {
     this.soundSystem.startBackgroundMusic();
 
     // Show game start notification
-    this.flashTextSystem.addFlashText("GAME START!", {
+    this.flashTextOverlay.addFlashText("GAME START!", {
       color: "#00ff00",
       glowColor: "#88ff88",
       shadowColor: "#004400",
@@ -296,8 +307,10 @@ class Game {
     requestAnimationFrame(() => this.gameLoop());
   }
 
-  // Update game state
+  // Update game state - Centralized GameObject approach
   update() {
+    const deltaTime = 16; // Assume 60fps for now
+
     // Prepare input state
     const inputState = {
       keys: this.keys,
@@ -315,54 +328,86 @@ class Game {
           : null,
     };
 
-    // Prepare game state
+    // Prepare game state for objects that need it
     const gameState = {
-      balls: this.balls,
-      leftPaddle: this.leftPaddle,
-      rightPaddle: this.rightPaddle,
-      powerups: this.powerupSystem.getPowerups(),
-      randomWalls: this.powerupSystem.getRandomWalls(),
-      portals: this.powerupSystem.getPortals(),
-    };
-
-    // Update systems
-    this.physicsSystem.update(gameState, inputState);
-    this.powerupSystem.update(this.balls);
-
-    // Check powerup collisions
-    this.powerupSystem.checkCollisions(this.balls);
-
-    // Update flash text system
-    this.flashTextSystem.update();
-
-    // Update timer
-    this.updateTimer();
-
-    // Spawn new ball if no balls exist
-    if (this.balls.length === 0) {
-      const newBall = new Ball(
-        CONFIG.CANVAS_WIDTH / 2,
-        CONFIG.CANVAS_HEIGHT / 2
-      );
-      newBall.resetVelocity(); // Ensure proper velocity for current orientation
-      this.balls.push(newBall);
-    }
-  }
-
-  // Render game
-  render() {
-    const gameState = {
-      balls: this.balls,
+      balls: this.getBalls(),
       leftPaddle: this.leftPaddle,
       rightPaddle: this.rightPaddle,
       powerups: this.powerupSystem.getPowerups(),
       randomWalls: this.powerupSystem.getRandomWalls(),
       portals: this.powerupSystem.getPortals(),
       blackholes: this.powerupSystem.getBlackholes(),
-      flashTexts: this.flashTextSystem.getFlashTexts(),
+      inputState: inputState,
+      gameObjects: this.gameObjects,
     };
 
-    this.renderSystem.render(gameState);
+    // 1. Update all game objects
+    this.gameObjects.forEach((obj) => {
+      if (obj && obj.update) {
+        obj.update(deltaTime, gameState);
+      }
+    });
+
+    // 2. Update powerup system (manages powerup spawning and effects)
+    this.powerupSystem.update(this.getBalls());
+
+    // 3. Add powerup-created objects to game objects
+    this.syncPowerupObjects();
+
+    // 4. Detect and resolve all collisions
+    const collisionResults = this.collisionSystem.update(this.gameObjects);
+
+    // 5. Remove objects marked for removal
+    this.removeMarkedObjects();
+
+    // 6. Update timer
+    this.updateTimer();
+
+    // 7. Spawn new ball if no balls exist
+    if (this.getBalls().length === 0) {
+      this.spawnNewBall();
+    }
+  }
+
+  // Render game - Centralized approach
+  render() {
+    // Clear canvas
+    this.ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+
+    // Render all game objects
+    this.gameObjects.forEach((obj) => {
+      if (obj && obj.render && obj.active && !obj.toRemove) {
+        obj.render(this.ctx);
+      }
+    });
+
+    // Render powerup system objects (powerups, walls, portals, blackholes)
+    this.powerupSystem.getPowerups().forEach((powerup) => {
+      if (powerup && powerup.render && !powerup.collected && !powerup.expired) {
+        powerup.render(this.ctx);
+      }
+    });
+
+    this.powerupSystem.getRandomWalls().forEach((wall) => {
+      if (wall && wall.render && wall.active) {
+        wall.render(this.ctx);
+      }
+    });
+
+    this.powerupSystem.getPortals().forEach((portal) => {
+      if (portal && portal.render && portal.active) {
+        portal.render(this.ctx);
+      }
+    });
+
+    this.powerupSystem.getBlackholes().forEach((blackhole) => {
+      if (blackhole && blackhole.render && blackhole.active) {
+        blackhole.render(this.ctx);
+      }
+    });
+
+    // Flash texts are now rendered via HTML/CSS overlay
+    // Particles are now handled as game objects
   }
 
   // Update timer display (only when seconds change)
@@ -451,7 +496,7 @@ class Game {
     }
 
     // Show the main goal notification
-    this.flashTextSystem.addFlashText(message, options);
+    this.flashTextOverlay.addFlashText(message, options);
   }
 
   // Reset game
@@ -469,27 +514,22 @@ class Game {
     // Create new ball with correct velocity for orientation
     const newBall = new Ball(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
     newBall.resetVelocity();
-    this.balls = [newBall];
+
+    // Reset game objects to initial state
+    this.gameObjects = [
+      this.leftPaddle,
+      this.rightPaddle,
+      newBall,
+      this.flashTextOverlay,
+    ];
 
     // Clear systems
     this.powerupSystem.clear();
-    this.renderSystem.clearParticles();
-    this.flashTextSystem.clear();
+    this.flashTextOverlay.clear();
 
     // Update UI
     this.updateScoreDisplay();
     this.updateTimer();
-  }
-
-  // Get game state for AI
-  getGameState() {
-    return {
-      balls: this.balls,
-      leftPaddle: this.leftPaddle,
-      rightPaddle: this.rightPaddle,
-      leftScore: this.leftScore,
-      rightScore: this.rightScore,
-    };
   }
 
   // Set paddle modes
@@ -535,9 +575,64 @@ class Game {
     this.rightPaddle.applyEffects();
 
     // Reset ball velocities for new orientation
-    this.balls.forEach((ball) => {
+    this.getBalls().forEach((ball) => {
       if (!ball.disabled) {
         ball.resetVelocity();
+      }
+    });
+  }
+
+  // Helper method to get all balls from game objects
+  getBalls() {
+    return this.gameObjects.filter((obj) => obj.type === "ball");
+  }
+
+  // Helper method to add a game object
+  addGameObject(obj) {
+    if (obj && !this.gameObjects.includes(obj)) {
+      this.gameObjects.push(obj);
+    }
+  }
+
+  // Helper method to remove objects marked for removal
+  removeMarkedObjects() {
+    this.gameObjects = this.gameObjects.filter((obj) => !obj.shouldRemove());
+  }
+
+  // Helper method to spawn a new ball
+  spawnNewBall() {
+    const newBall = new Ball(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+    newBall.resetVelocity(); // Ensure proper velocity for current orientation
+    this.addGameObject(newBall);
+  }
+
+  // Helper method to sync powerup-created objects with main game objects
+  syncPowerupObjects() {
+    // Add powerups to game objects if not already there
+    this.powerupSystem.getPowerups().forEach((powerup) => {
+      if (!this.gameObjects.includes(powerup)) {
+        this.addGameObject(powerup);
+      }
+    });
+
+    // Add walls to game objects if not already there
+    this.powerupSystem.getRandomWalls().forEach((wall) => {
+      if (!this.gameObjects.includes(wall)) {
+        this.addGameObject(wall);
+      }
+    });
+
+    // Add portals to game objects if not already there
+    this.powerupSystem.getPortals().forEach((portal) => {
+      if (!this.gameObjects.includes(portal)) {
+        this.addGameObject(portal);
+      }
+    });
+
+    // Add blackholes to game objects if not already there
+    this.powerupSystem.getBlackholes().forEach((blackhole) => {
+      if (!this.gameObjects.includes(blackhole)) {
+        this.addGameObject(blackhole);
       }
     });
   }

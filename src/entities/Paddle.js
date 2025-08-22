@@ -1,11 +1,12 @@
 import { CONFIG } from "../config/game.js";
+import GameObject from "./GameObject.js";
 import eventBus from "../core/EventBus.js";
 
 // Paddle Entity - Self-contained paddle object with AI, input handling, and rendering
-class Paddle {
+class Paddle extends GameObject {
   constructor(x, y, side, mode = "ai") {
-    this.x = x;
-    this.y = y;
+    super(x, y, "paddle");
+
     this.side = side; // 'left' or 'right' (or 'top'/'bottom' in vertical mode)
     this.mode = mode; // 'keyboard', 'mouse', 'ai'
     this.width = CONFIG.getPaddleWidth();
@@ -13,6 +14,11 @@ class Paddle {
     this.speed = CONFIG.PADDLE_SPEED;
     this.targetY = y;
     this.targetX = x; // For vertical mode
+
+    // Set collision properties
+    this.collidable = true;
+    this.collisionWidth = this.width;
+    this.collisionHeight = this.height;
 
     // Velocity tracking for momentum transfer (works for both orientations)
     this.previousY = y;
@@ -44,10 +50,19 @@ class Paddle {
   }
 
   // Update paddle position based on mode
-  update(inputState, gameState) {
+  update(deltaTime = 16, gameState = null) {
+    super.update(deltaTime, gameState);
+
     // Store previous position for velocity calculation
     this.previousY = this.y;
     this.previousX = this.x;
+
+    // Extract input state from gameState
+    const inputState = gameState?.inputState || {
+      keys: {},
+      mouseY: null,
+      mouseX: null,
+    };
 
     switch (this.mode) {
       case "keyboard":
@@ -79,9 +94,15 @@ class Paddle {
       );
     }
 
+    // Update collision dimensions
+    this.collisionWidth = this.currentWidth;
+    this.collisionHeight = this.currentHeight;
+
     // Calculate velocity for momentum transfer
     this.velocity = this.y - this.previousY;
     this.velocityX = this.x - this.previousX;
+
+    return null; // No collision data to return
   }
 
   // Keyboard controls
@@ -414,7 +435,78 @@ class Paddle {
     });
   }
 
-  // Check collision with ball
+  // Handle collision with another object
+  onCollision(other, collisionType = "default") {
+    switch (other.type) {
+      case "ball":
+        return this.handleBallCollision(other);
+      default:
+        return false;
+    }
+  }
+
+  // Handle collision with ball
+  handleBallCollision(ball) {
+    // Shield check first
+    if (this.hasShield && this.shieldReflections < this.maxShieldReflections) {
+      // Check if ball is behind the paddle (shield reflection)
+      if (CONFIG.isVertical()) {
+        // Vertical mode: check if ball is above/below paddle
+        if (this.side === "left" && ball.y < this.y) {
+          // Ball is above top paddle - shield covers full table width
+          if (
+            ball.x + ball.radius > 0 &&
+            ball.x - ball.radius < CONFIG.CANVAS_WIDTH
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
+        } else if (
+          this.side === "right" &&
+          ball.y > this.y + this.currentHeight
+        ) {
+          // Ball is below bottom paddle - shield covers full table width
+          if (
+            ball.x + ball.radius > 0 &&
+            ball.x - ball.radius < CONFIG.CANVAS_WIDTH
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
+        }
+      } else {
+        // Horizontal mode: check if ball is left/right of paddle
+        if (this.side === "left" && ball.x < this.x) {
+          // Ball is behind left paddle - shield covers full table height
+          if (
+            ball.y + ball.radius > 0 &&
+            ball.y - ball.radius < CONFIG.CANVAS_HEIGHT
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
+        } else if (
+          this.side === "right" &&
+          ball.x > this.x + this.currentWidth
+        ) {
+          // Ball is behind right paddle - shield covers full table height
+          if (
+            ball.y + ball.radius > 0 &&
+            ball.y - ball.radius < CONFIG.CANVAS_HEIGHT
+          ) {
+            this.reflectBallWithShield(ball);
+            return true;
+          }
+        }
+      }
+    }
+
+    // Normal paddle collision - handled by ball
+    ball.handlePaddleCollision(this);
+    return true;
+  }
+
+  // Check collision with ball (legacy method for backward compatibility)
   checkCollision(ball) {
     const paddleLeft = this.x;
     const paddleRight = this.x + this.currentWidth;

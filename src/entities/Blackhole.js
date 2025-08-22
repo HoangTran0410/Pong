@@ -22,18 +22,32 @@ class Blackhole extends GameObject {
   }
 
   // Update blackhole state
-  update(deltaTime) {
-    super.update(deltaTime);
+  update(deltaTime = 16, gameState = null) {
+    super.update(deltaTime, gameState);
 
     // Update visual effects
     this.rotationAngle += 0.05;
     this.pulseFactor = 0.8 + Math.sin(Date.now() * 0.005) * 0.2;
+
+    // Apply gravity to all balls if gameState is provided
+    if (gameState && gameState.balls) {
+      gameState.balls.forEach((ball) => {
+        this.applyGravityToBall(ball);
+
+        // Check if ball should be consumed
+        if (this.checkBallConsumption(ball)) {
+          ball.markForRemoval();
+        }
+      });
+    }
 
     // Check if blackhole should expire
     const age = Date.now() - this.startTime;
     if (age >= this.lifetime) {
       this.destroy();
     }
+
+    return null;
   }
 
   // Apply gravitational force to a ball

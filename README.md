@@ -1,8 +1,18 @@
 # Retro Pong Game with Powerups
 
-## Play
+[Play now](http://hoangtran99.is-a.dev/Pong/)
 
-[Pong](http://hoangtran99.is-a.dev/Pong/)
+## Screenshots
+
+![InGame](./screenshots/in-game.png)
+
+![Powerup](./screenshots/powerup.png)
+
+## Gameplay demo
+
+Youtube video: <https://www.youtube.com/watch?v=m2rvms8tTL0>
+
+[![Gameplay demo](https://img.youtube.com/vi/m2rvms8tTL0/0.jpg)](https://www.youtube.com/watch?v=m2rvms8tTL0)
 
 ## Others versions
 

@@ -853,6 +853,8 @@ body::before {
   height: 100vh;
   overflow: hidden; /* Game screen should not scroll */
   position: relative;
+  justify-content: center;
+  align-items: center;
 }
 
 .game-header {
@@ -860,7 +862,7 @@ body::before {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  max-width: 1200px;
+  max-width: 800px;
   padding: 1rem;
   background: var(--color-black-08);
   border: 2px solid var(--color-primary-green);
@@ -884,10 +886,6 @@ body::before {
 }
 
 #gameCanvas {
-  width: 100%;
-  height: 100%;
-  max-width: 100vw;
-  max-height: 70vh;
   border: 3px solid var(--color-primary-green);
   position: relative;
   z-index: 2;
@@ -898,6 +896,8 @@ body::before {
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
   animation: flicker 0.15s infinite;
+  display: block;
+  margin: 0 auto;
 }
 
 .game-controls {
@@ -905,7 +905,7 @@ body::before {
   gap: 1rem;
   justify-content: center;
   width: 100%;
-  max-width: 1200px;
+  max-width: 800px;
 }
 
 .game-controls button {

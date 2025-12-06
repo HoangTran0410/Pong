@@ -73,21 +73,50 @@ export const CONFIG = {
       container.querySelector(".game-header")?.offsetHeight || 0;
     const controlsHeight =
       container.querySelector(".game-controls")?.offsetHeight || 0;
-    const padding = 2; // Account for borders and margins
+    const padding = 40; // Account for borders and margins
 
     const availableHeight =
       window.innerHeight - headerHeight - controlsHeight - padding;
     const availableWidth = window.innerWidth - padding;
 
+    // Check if mobile device (viewport width < 768px)
+    const isMobile = window.innerWidth < 768;
+
+    let finalWidth, finalHeight;
+
+    if (isMobile) {
+      // Mobile: use full available space
+      finalWidth = availableWidth;
+      finalHeight = availableHeight;
+    } else {
+      // Desktop: max 800x600, maintaining aspect ratio
+      const maxWidth = 800;
+      const maxHeight = 600;
+
+      // Calculate aspect ratio
+      const aspectRatio = maxWidth / maxHeight;
+      const availableAspectRatio = availableWidth / availableHeight;
+
+      if (availableAspectRatio > aspectRatio) {
+        // Width is the limiting factor
+        finalHeight = Math.min(availableHeight, maxHeight);
+        finalWidth = finalHeight * aspectRatio;
+      } else {
+        // Height is the limiting factor
+        finalWidth = Math.min(availableWidth, maxWidth);
+        finalHeight = finalWidth / aspectRatio;
+      }
+    }
+
     // Set canvas dimensions
-    canvas.width = availableWidth;
-    canvas.height = availableHeight;
+    canvas.width = finalWidth;
+    canvas.height = finalHeight;
 
     // Update config dimensions
-    CONFIG.CANVAS_WIDTH = availableWidth;
-    CONFIG.CANVAS_HEIGHT = availableHeight;
+    CONFIG.CANVAS_WIDTH = finalWidth;
+    CONFIG.CANVAS_HEIGHT = finalHeight;
 
-    return { width: availableWidth, height: availableHeight };
+    return { width: finalWidth, height: finalHeight };
   },
 
   // Orientation helpers
